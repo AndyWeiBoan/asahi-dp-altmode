@@ -1,0 +1,264 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "學習階梯：從 build kernel 到讓 Studio Display 亮起來",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "near",
+        "label": "近程：打底",
+        "focus": [
+          "s0",
+          "s05"
+        ],
+        "note": "先取得迭代迴圈，再建立「軟體對硬體做了什麼」的直覺。"
+      },
+      {
+        "id": "mid",
+        "label": "中程：學會讀",
+        "focus": [
+          "s1",
+          "s2"
+        ],
+        "note": "讀得懂 driver，也讀得懂 tracer 輸出，才有能力解題。"
+      },
+      {
+        "id": "far",
+        "label": "遠程：解題",
+        "focus": [
+          "s3",
+          "s4",
+          "m1",
+          "m2"
+        ],
+        "note": "階段 3 同時是 Bug 1 的測試，也是讀懂 DCP 的訓練。"
+      },
+      {
+        "id": "spine",
+        "label": "整條路的脊椎",
+        "focus": [
+          "s3",
+          "m1"
+        ],
+        "note": "用一個你知道正確答案的案例，校準自己的閱讀能力。"
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "工作階段"
+        },
+        "security": {
+          "label": "關鍵階段"
+        },
+        "external": {
+          "label": "里程碑"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "stage",
+      "label": "學習階梯"
+    },
+    {
+      "id": "outcome",
+      "label": "里程碑"
+    }
+  ],
+  "phases": [
+    {
+      "id": "near",
+      "label": "近程：打底（數天～兩週）",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "mid",
+      "label": "中程：學會讀（數週）",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "far",
+      "label": "遠程：解題（無期限）",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "s0",
+    "s05",
+    "s1",
+    "s2",
+    "s3",
+    "s4"
+  ],
+  "nodes": [
+    {
+      "id": "s0",
+      "lane": "stage",
+      "col": 0,
+      "type": "backend",
+      "label": "0 · build kernel",
+      "sublabel": "fairydust + DTB",
+      "tag": "裝好的 Asahi",
+      "width": 138
+    },
+    {
+      "id": "s05",
+      "lane": "stage",
+      "col": 1,
+      "type": "backend",
+      "label": "0.5 · proxy REPL",
+      "sublabel": "戳 MMIO 暫存器",
+      "tag": "裸機 + mini",
+      "width": 138
+    },
+    {
+      "id": "s1",
+      "lane": "stage",
+      "col": 2,
+      "type": "backend",
+      "label": "1 · 讀 driver",
+      "sublabel": "加 printk 追路徑",
+      "tag": "裝好的 Asahi",
+      "width": 138
+    },
+    {
+      "id": "s2",
+      "lane": "stage",
+      "col": 3,
+      "type": "backend",
+      "label": "2 · trace 熱身",
+      "sublabel": "先讀簡單裝置",
+      "tag": "hypervisor",
+      "width": 138
+    },
+    {
+      "id": "s3",
+      "lane": "stage",
+      "col": 4,
+      "type": "security",
+      "label": "3 · 雙邊 trace",
+      "sublabel": "macOS vs Linux",
+      "tag": "脊椎",
+      "width": 138
+    },
+    {
+      "id": "s4",
+      "lane": "stage",
+      "col": 5,
+      "type": "backend",
+      "label": "4 · Studio Display",
+      "sublabel": "call 20 正確回應",
+      "tag": "畢業專題",
+      "width": 138
+    },
+    {
+      "id": "m1",
+      "lane": "outcome",
+      "col": 4,
+      "type": "external",
+      "label": "Bug 1 收斂",
+      "sublabel": "USB-C 螢幕會亮",
+      "width": 138
+    },
+    {
+      "id": "m2",
+      "lane": "outcome",
+      "col": 5,
+      "type": "external",
+      "label": "Bug 2 收斂",
+      "sublabel": "Studio Display 會亮",
+      "width": 138
+    }
+  ],
+  "edges": [
+    {
+      "from": "s0",
+      "to": "s05",
+      "label": "迭代迴圈"
+    },
+    {
+      "from": "s05",
+      "to": "s1",
+      "label": "懂 MMIO"
+    },
+    {
+      "from": "s1",
+      "to": "s2",
+      "label": "讀懂 driver"
+    },
+    {
+      "from": "s2",
+      "to": "s3",
+      "label": "讀懂 trace"
+    },
+    {
+      "from": "s3",
+      "to": "s4",
+      "label": "讀懂 DCP",
+      "variant": "emphasis"
+    },
+    {
+      "from": "s3",
+      "to": "m1",
+      "label": "順手驗證",
+      "variant": "dashed"
+    },
+    {
+      "from": "s4",
+      "to": "m2",
+      "role": "branch"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "近程目標（先做這個）",
+      "items": [
+        "build 出一顆能開機的 fairydust kernel，舊 kernel 留著隨時退回",
+        "在 #601 / #579 留言：我有 t600x + Studio Display，可錄 trace、可測 patch",
+        "順便問清楚 fairydust 的 dts 把哪個 port 指定給 DP，別跟接線孔撞在一起",
+        "自己讀一遍 Copyright and Reverse Engineering Policy 原文"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "中程目標",
+      "items": [
+        "能在 phy/apple/atc.c 加 printk 並看懂執行路徑",
+        "能架起 m1n1 hypervisor，錄下一份可讀的 trace",
+        "把 PR #622 / #503 rebase 到現在的 fairydust 並在 t600x 上實測",
+        "回報結果 —— 這一步本身就是社群目前缺的東西"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "遠程目標",
+      "items": [
+        "Bug 1：讓 M1 Pro 的 Type-C port 真的切進 DP 模式",
+        "Bug 2：從 macOS trace 反推 call 20 的正確回應序列",
+        "把成果送 PR（注意：要自己讀 trace、自己寫，才進得了上游）",
+        "真正的收穫是能力：下次遇到任何不支援的裝置都不再害怕"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "階段 3 為什麼是關鍵",
+      "items": [
+        "用「你知道正確答案」的案例來校準閱讀能力，不會卡在看不懂",
+        "要用便宜的 USB-C→HDMI 轉接頭，不要用內建 HDMI 孔",
+        "內建 HDMI 走獨立轉換晶片，對話形狀跟 Type-C 路徑不一樣",
+        "轉接頭走的是同一條 atcphy → dcpext → dptx，只是少了那顆 A13",
+        "所以這一個練習同時完成 Bug 1 的測試與 DCP 的閱讀訓練"
+      ]
+    }
+  ]
+}

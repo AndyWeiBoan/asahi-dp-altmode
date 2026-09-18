@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "哪一台是哪個角色：target 被觀測，host 只負責看",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "你眼睛看的地方"
+        },
+        "backend": {
+          "label": "host 的 Python / target 的硬體"
+        },
+        "security": {
+          "label": "m1n1 攔截層"
+        },
+        "external": {
+          "label": "Apple 的東西（不可改）"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "roles",
+        "label": "兩個角色",
+        "focus": [
+          "proxyclient",
+          "m1n1",
+          "sd"
+        ],
+        "note": "一台被觀測、一台看結果，螢幕插在被觀測那台。"
+      },
+      {
+        "id": "capture",
+        "label": "捕獲在哪裡",
+        "focus": [
+          "guest",
+          "m1n1",
+          "hwt"
+        ],
+        "note": "macOS 存取 MMIO 時被 m1n1 攔下，這一步發生在 target。"
+      },
+      {
+        "id": "decode",
+        "label": "解讀在哪裡",
+        "focus": [
+          "proxyclient",
+          "tracer",
+          "term"
+        ],
+        "note": "trace_dcp.py 跑在 host 上，所以改 tracer 不用重 build kernel。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "term",
+      "type": "frontend",
+      "label": "終端機畫面",
+      "sublabel": "MBP 內建螢幕，你在這裡讀 trace",
+      "pos": [
+        40,
+        95
+      ],
+      "size": [
+        200,
+        76
+      ]
+    },
+    {
+      "id": "tracer",
+      "type": "backend",
+      "label": "trace_dcp.py",
+      "sublabel": "解碼邏輯，跑在 host 不在 target",
+      "pos": [
+        40,
+        240
+      ],
+      "size": [
+        200,
+        80
+      ],
+      "tag": "改這個只要幾秒"
+    },
+    {
+      "id": "proxyclient",
+      "type": "backend",
+      "label": "proxyclient",
+      "sublabel": "Python，透過 USB 跟 m1n1 對話",
+      "pos": [
+        40,
+        385
+      ],
+      "size": [
+        200,
+        80
+      ]
+    },
+    {
+      "id": "guest",
+      "type": "external",
+      "label": "macOS 14.8.3（guest）",
+      "sublabel": "EL1，原封不動，不知道被虛擬化",
+      "pos": [
+        620,
+        80
+      ],
+      "size": [
+        215,
+        80
+      ]
+    },
+    {
+      "id": "m1n1",
+      "type": "security",
+      "label": "m1n1 hypervisor（EL2）",
+      "sublabel": "把 MMIO 設成 trap，攔下再放行",
+      "pos": [
+        620,
+        225
+      ],
+      "size": [
+        215,
+        80
+      ],
+      "tag": "中介層"
+    },
+    {
+      "id": "hwt",
+      "type": "backend",
+      "label": "DCP / atcphy",
+      "sublabel": "真實硬體，原生速度不是模擬",
+      "pos": [
+        620,
+        370
+      ],
+      "size": [
+        215,
+        80
+      ]
+    },
+    {
+      "id": "sd",
+      "type": "external",
+      "label": "Studio Display",
+      "sublabel": "插在 target 這台，不是插 host",
+      "pos": [
+        950,
+        370
+      ],
+      "size": [
+        205,
+        80
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "host 角色 —— MacBook Pro（旁觀者，不參與）",
+      "wraps": [
+        "term",
+        "tracer",
+        "proxyclient"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "target 角色 —— Mac mini（被觀測的那台）",
+      "wraps": [
+        "guest",
+        "m1n1",
+        "hwt"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "usb",
+      "from": "proxyclient",
+      "to": "m1n1",
+      "label": "USB 線：回報 trap 事件",
+      "variant": "emphasis"
+    },
+    {
+      "id": "decode",
+      "from": "proxyclient",
+      "to": "tracer",
+      "label": "交給解碼器",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        140,
+        352
+      ]
+    },
+    {
+      "id": "print",
+      "from": "tracer",
+      "to": "term",
+      "label": "印出來",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        140,
+        205
+      ]
+    },
+    {
+      "id": "trap",
+      "from": "guest",
+      "to": "m1n1",
+      "label": "每次 MMIO 存取被攔下",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        728,
+        192
+      ]
+    },
+    {
+      "id": "passthru",
+      "from": "m1n1",
+      "to": "hwt",
+      "label": "記錄後原樣放行",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        728,
+        337
+      ]
+    },
+    {
+      "id": "dp",
+      "from": "hwt",
+      "to": "sd",
+      "label": "DP Alt Mode",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "角色怎麼分",
+      "items": [
+        "target＝被觀測的機器，螢幕插這台，m1n1 和 guest 都在這台",
+        "host＝旁觀者，只跑 Python、收資料、印出來，不影響 target",
+        "MBP 有內建螢幕所以適合當 host；mini 是 t8103，沒有 Bug 1"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "捕獲與解讀是分開的",
+      "items": [
+        "捕獲在 target：m1n1 攔下 MMIO 存取",
+        "解讀在 host：trace_dcp.py 是 Python，跑在 host 上",
+        "所以改 tracer 是「改 Python 重跑」，不用重 build kernel"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "之後角色會對調",
+      "items": [
+        "要測 Bug 1（t600x）時，MBP 變 target、mini 變 host",
+        "那時 Studio Display 插到 MBP，mini 需要自己的畫面",
+        "target 需要一份 macOS 14.8.3 在獨立的 volume group 上"
+      ]
+    }
+  ]
+}

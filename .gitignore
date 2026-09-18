@@ -1,0 +1,4 @@
+# archify 的驗證截圖與報告，不需要進版控
+evidence/
+*.visual-check.*
+.DS_Store

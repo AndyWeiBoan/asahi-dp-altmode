@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "訊號經過哪些層，卡在哪兩層（這是剖面圖，不是接線圖）",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "signal-path",
+        "label": "訊號主路徑",
+        "focus": [
+          "studio",
+          "atcphy",
+          "dcp",
+          "drm_apple",
+          "kms"
+        ],
+        "note": "從螢幕到畫面送出，訊號實際走過的路。"
+      },
+      {
+        "id": "bug1",
+        "label": "Bug 1：Type-C PHY",
+        "focus": [
+          "tipd",
+          "atcphy",
+          "atc_c"
+        ],
+        "note": "port 切不進 DP 模式，訊號根本沒送出去。"
+      },
+      {
+        "id": "bug2",
+        "label": "Bug 2：DCP 交握",
+        "focus": [
+          "studio",
+          "dcp",
+          "drm_apple"
+        ],
+        "note": "DCP 回報 sink 未啟用，driver 不知道該怎麼回。"
+      },
+      {
+        "id": "editable",
+        "label": "你能改的範圍",
+        "focus": [
+          "atc_c",
+          "drm_apple",
+          "kms"
+        ],
+        "note": "Apple 的 firmware 原樣載入，只有 Linux driver 是你的。"
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "external": {
+          "label": "Apple 封閉，不可修改"
+        },
+        "backend": {
+          "label": "硬體區塊 / Linux driver"
+        },
+        "frontend": {
+          "label": "使用者看到的結果"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "studio",
+      "type": "external",
+      "label": "Apple Studio Display",
+      "sublabel": "內建 A13，接在 target 機器上",
+      "pos": [
+        40,
+        210
+      ],
+      "size": [
+        170,
+        76
+      ],
+      "tag": "5K / DP Alt Mode"
+    },
+    {
+      "id": "tipd",
+      "type": "backend",
+      "label": "tipd",
+      "sublabel": "USB-PD 控制器",
+      "pos": [
+        340,
+        60
+      ],
+      "size": [
+        160,
+        68
+      ]
+    },
+    {
+      "id": "atcphy",
+      "type": "backend",
+      "label": "atcphy",
+      "sublabel": "Type-C PHY（t8103 / t600x）",
+      "pos": [
+        340,
+        210
+      ],
+      "size": [
+        160,
+        76
+      ],
+      "tag": "Bug 1：只有 t600x 有"
+    },
+    {
+      "id": "dcp",
+      "type": "external",
+      "label": "DCP",
+      "sublabel": "顯示協處理器 firmware",
+      "pos": [
+        630,
+        210
+      ],
+      "size": [
+        170,
+        76
+      ],
+      "tag": "Bug 2：兩台都有"
+    },
+    {
+      "id": "atc_c",
+      "type": "backend",
+      "label": "phy/apple/atc.c",
+      "sublabel": "PHY 驅動：直接讀寫暫存器",
+      "pos": [
+        340,
+        420
+      ],
+      "size": [
+        160,
+        76
+      ]
+    },
+    {
+      "id": "drm_apple",
+      "type": "backend",
+      "label": "drm/apple",
+      "sublabel": "dcp.c / dptx：mailbox RPC",
+      "pos": [
+        630,
+        420
+      ],
+      "size": [
+        170,
+        76
+      ]
+    },
+    {
+      "id": "kms",
+      "type": "frontend",
+      "label": "KMS / Wayland",
+      "sublabel": "畫面真的出現",
+      "pos": [
+        920,
+        420
+      ],
+      "size": [
+        160,
+        76
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "target 機器內部：硬體與 Apple firmware（mini=t8103／MBP=t600x）",
+      "wraps": [
+        "tipd",
+        "atcphy",
+        "dcp"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Linux driver 原始碼（兩台共用同一份）：你唯一能改的地方",
+      "wraps": [
+        "atc_c",
+        "drm_apple",
+        "kms"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "cable",
+      "from": "studio",
+      "to": "atcphy",
+      "label": "USB-C 線",
+      "variant": "emphasis"
+    },
+    {
+      "id": "altmode",
+      "from": "tipd",
+      "to": "atcphy",
+      "label": "DP Alt Mode 協商",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        420,
+        170
+      ]
+    },
+    {
+      "id": "dplink",
+      "from": "atcphy",
+      "to": "dcp",
+      "label": "DP 訊號",
+      "variant": "emphasis"
+    },
+    {
+      "id": "mmio",
+      "from": "atc_c",
+      "to": "atcphy",
+      "label": "MMIO 暫存器",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        420,
+        353
+      ]
+    },
+    {
+      "id": "mailbox",
+      "from": "drm_apple",
+      "to": "dcp",
+      "label": "mailbox / AP call",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        715,
+        353
+      ]
+    },
+    {
+      "id": "modeset",
+      "from": "drm_apple",
+      "to": "kms",
+      "label": "回報 mode"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Bug 1 — atcphy（issue #601）",
+      "items": [
+        "症狀：atcphy_mux_set WARN + Failed to lock pipehandler",
+        "port 切到 DP 模式時 firmware 不回應，退回 USB2",
+        "已有程式碼：PR #622 / #503 / #476，但都沒 merge"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Bug 2 — DCP 交握（issue #579）",
+      "items": [
+        "症狀：acking unhandled call 20，link 立刻拆掉",
+        "DCP 回報 INACTIVE_SINK_DETECTED：螢幕的 A13 還在睡",
+        "沒有內建處理器的螢幕不會觸發這條路徑"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "怎麼讀這張圖",
+      "items": [
+        "這是 target 機器的剖面圖 —— 接線方式請看圖 3",
+        "除了最左邊那條 USB-C 線，其餘都發生在同一台機器內部",
+        "上半部（硬體）跟著機器走，下半部（driver）兩台共用同一份原始碼"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M1 Pro 外接螢幕專案</title>
+<style>
+:root{
+  --bg:#f0eee6; --panel:#faf9f7; --panel2:#ffffff;
+  --ink:#191917; --ink2:#2f2d28; --muted:#6f6b61; --line:#ddd8cb; --line2:#e8e4d9;
+  --accent:#b8542f; --accent-soft:#f2e4dc;
+  --ok:#4f6f4a; --warn:#9a6b18; --bad:#a3403c; --code-bg:#e9e5d9;
+  --shadow:0 1px 2px rgba(60,50,30,.05),0 6px 20px rgba(60,50,30,.05);
+  --serif:ui-serif,"Iowan Old Style",Georgia,"Songti TC","Noto Serif TC",serif;
+}
+:root[data-theme="dark"]{
+  --bg:#1c1b19; --panel:#232220; --panel2:#2a2825;
+  --ink:#f2f0ea; --ink2:#e2dfd6; --muted:#a09a8d; --line:#38352f; --line2:#312e29;
+  --accent:#e08a66; --accent-soft:#3a2a22;
+  --ok:#89ab82; --warn:#d9a95f; --bad:#e08080; --code-bg:#2b2926;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.3);
+}
+@media (prefers-color-scheme: dark){
+  :root[data-theme="auto"]{
+    --bg:#1c1b19; --panel:#232220; --panel2:#2a2825;
+    --ink:#f2f0ea; --ink2:#e2dfd6; --muted:#a09a8d; --line:#38352f; --line2:#312e29;
+    --accent:#e08a66; --accent-soft:#3a2a22;
+    --ok:#89ab82; --warn:#d9a95f; --bad:#e08080; --code-bg:#2b2926;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:16px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Hiragino Sans",sans-serif;
+  letter-spacing:.006em;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:0 16px 96px}
+header{padding:64px 0 34px; border-bottom:1px solid var(--line); margin-bottom:36px}
+h1{font-family:var(--serif); font-weight:600; font-size:clamp(28px,4.4vw,42px);
+  line-height:1.22; margin:0 0 14px; letter-spacing:-.015em}
+.lede{color:var(--ink2); font-size:17.5px; margin:0; max-width:62ch; line-height:1.72}
+
+.layout{display:block}
+@media (min-width:1040px){
+  .layout{display:grid; grid-template-columns:222px minmax(0,1fr); gap:52px; align-items:start}
+}
+.toc{margin:0 0 36px}
+@media (min-width:1040px){
+  .toc{position:sticky; top:24px; margin:0; max-height:calc(100vh - 48px); overflow-y:auto;
+    padding-right:6px}
+}
+.toc h4{font-size:11.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--muted);
+  margin:0 0 10px; font-weight:700}
+.toc h4+h4{margin-top:26px}
+.toc ul{list-style:none; padding:0; margin:0}
+.toc li{margin:0}
+.toc a{display:block; padding:5px 10px; margin-left:-10px; border-radius:7px;
+  color:var(--ink2); text-decoration:none; font-size:14.5px; line-height:1.5;
+  border-left:2px solid transparent}
+.toc a:hover{background:var(--panel); color:var(--accent)}
+.toc a.on{color:var(--accent); background:var(--accent-soft); font-weight:600}
+.toc .pg a{border:1px solid var(--line); background:var(--panel); margin:0 0 8px;
+  padding:9px 12px; box-shadow:var(--shadow)}
+.toc .pg a:hover{border-color:var(--accent)}
+.toc .pg small{display:block; color:var(--muted); font-size:12px; line-height:1.45; margin-top:2px}
+.toc details{margin:0}
+.toc summary{cursor:pointer; font-size:14px; font-weight:600; color:var(--accent); padding:8px 0}
+@media (min-width:1040px){ .toc summary{display:none} .toc details{display:block} }
+.toc details[open] summary{margin-bottom:8px}
+
+h2{font-family:var(--serif); font-weight:600; font-size:clamp(21px,2.7vw,27px);
+  margin:60px 0 10px; letter-spacing:-.01em; scroll-margin-top:24px; line-height:1.3}
+h2:first-child{margin-top:0}
+h2 .n{color:var(--accent); font-family:inherit; margin-right:12px; font-variant-numeric:tabular-nums}
+h3{font-size:17px; margin:32px 0 6px; font-weight:650}
+p{margin:13px 0; color:var(--ink2)}
+a{color:var(--accent); text-underline-offset:2px}
+strong{color:var(--ink)}
+code{background:var(--code-bg); padding:.13em .42em; border-radius:5px; font-size:.87em; color:var(--ink);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:15px 17px;
+  overflow-x:auto; font-size:13.5px; line-height:1.62; color:var(--ink);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre code{background:none; padding:0}
+.card{background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:20px 22px; margin:18px 0; box-shadow:var(--shadow)}
+.grid{display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(248px,1fr))}
+.grid .card{margin:0}
+.tag{display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:.05em;
+  padding:3px 10px; border-radius:999px; border:1px solid currentColor; margin-bottom:10px}
+.t-near{color:var(--ok)} .t-mid{color:var(--accent)} .t-far{color:var(--warn)} .t-bad{color:var(--bad)}
+table{width:100%; border-collapse:collapse; margin:18px 0; font-size:15px; display:block; overflow-x:auto}
+th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line2); vertical-align:top; color:var(--ink2)}
+th{font-size:13px; color:var(--muted); font-weight:700; letter-spacing:.03em; white-space:nowrap}
+ul,ol{padding-left:22px; margin:13px 0; color:var(--ink2)}
+li{margin:6px 0}
+.figs{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(228px,1fr)); margin:24px 0}
+.fig{display:block; background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:18px; text-decoration:none; color:inherit; box-shadow:var(--shadow);
+  transition:transform .15s,border-color .15s}
+.fig:hover{transform:translateY(-2px); border-color:var(--accent)}
+.fig b{display:block; font-size:16px; margin-bottom:5px; color:var(--ink)}
+.fig span{color:var(--muted); font-size:14px; line-height:1.55}
+.stage{border-left:2px solid var(--line); padding-left:22px; margin:30px 0}
+.stage.key{border-left-color:var(--accent)}
+.stage h3{margin-top:0}
+.muted{color:var(--muted)}
+.callout{border-left:2px solid var(--warn); background:var(--panel); border-radius:0 12px 12px 0;
+  padding:15px 19px; margin:18px 0; color:var(--ink2)}
+.callout.stop{border-left-color:var(--bad)}
+.chk{list-style:none; padding-left:0}
+.chk li{padding-left:26px; position:relative}
+.chk li::before{content:"☐"; position:absolute; left:0; color:var(--muted)}
+.chk li.have::before{content:"☑"; color:var(--ok)}
+.themebtn{position:fixed; top:16px; right:16px; z-index:9; cursor:pointer;
+  background:var(--panel); color:var(--ink2); border:1px solid var(--line); border-radius:999px;
+  padding:7px 15px; font-size:13px; font-weight:600; box-shadow:var(--shadow); font-family:inherit}
+.themebtn:hover{border-color:var(--accent); color:var(--accent)}
+@media (max-width:1240px){.themebtn{position:static; margin:16px 0 -8px; display:block}}
+.embed{margin:26px 0}
+.embed .bar{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  margin-bottom:8px; flex-wrap:wrap}
+.embed .bar b{font-size:15px}
+.embed .bar a{font-size:13.5px; text-decoration:none; white-space:nowrap}
+.embed .bar a:hover{text-decoration:underline}
+.embed iframe{width:100%; height:640px; border:1px solid var(--line); border-radius:14px;
+  background:var(--panel2); box-shadow:var(--shadow); display:block}
+@media (max-width:760px){.embed iframe{height:460px}}
+footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); color:var(--muted); font-size:14px}
+</style>
+</head>
+<body>
+<button class="themebtn" id="tt" type="button">深色</button>
+<div class="wrap">
+
+<header>
+  <h1>讓 Studio Display 在 Asahi Linux 上亮起來</h1>
+  <p class="lede">
+    表面上這是一個「修好外接螢幕」的專案。真正的目標是把
+    <strong>硬體到 kernel 之間那段空白</strong>補起來 ——
+    通了之後，往後遇到任何不被支援的裝置，你都知道該從哪裡下手。
+  </p>
+</header>
+
+<div class="layout">
+<nav class="toc">
+<details open>
+<summary>目錄 ▾</summary>
+<h4>頁面</h4>
+<ul class="pg">
+  <li><a href="index.html" class="on">計畫書<small>本頁</small></a></li>
+  <li><a href="01-stack.html">圖 1 · 技術堆疊<small>兩個 bug 卡在哪一層</small></a></li>
+  <li><a href="02-ladder.html">圖 2 · 學習階梯<small>六個階段與遠中近目標</small></a></li>
+  <li><a href="03-m1n1.html">圖 3 · 角色分配<small>哪台 target、哪台 host</small></a></li>
+  <li><a href="04-phases.html">圖 4 · 兩個階段<small>Python 找答案，C 寫進 kernel</small></a></li>
+</ul>
+<h4>本頁章節</h4>
+<ul id="toclist">
+  <li><a href="#s1">§1　大方向</a></li>
+  <li><a href="#s2">§2　遠中近目標</a></li>
+  <li><a href="#s3">§3　完整步驟</a></li>
+  <li><a href="#s4">§4　兩個階段（Python / C）</a></li>
+  <li><a href="#s5">§5　角色、機器與版本</a></li>
+  <li><a href="#s6">§6　規矩</a></li>
+  <li><a href="#s7">§7　材料清單</a></li>
+  <li><a href="#s8">§8　現在就能做的事</a></li>
+  <li><a href="#s9">§9　連結索引</a></li>
+</ul>
+</details>
+</nav>
+<main>
+
+<h2 id="s1"><span class="n">§1</span>大方向</h2>
+
+<p>
+  你手上是 MacBook Pro 14" M1 Pro（<code>MacBookPro18,3</code>，SoC 代號 t600x），跑 <a href="https://github.com/malik-na/omadora">omadora</a>（Fedora Asahi Remix + Hyprland，與 macOS 26 雙系統），
+  外接 Apple Studio Display。好消息是 Studio Display 走的是
+  <strong>USB-C DisplayPort Alt Mode</strong>，不需要 Thunderbolt tunneling —— 那條路才是真的無解。
+</p>
+<p>
+  壞消息是這條路上疊了<strong>兩個 bug</strong>，而且第一個在更前面。
+  整個專案的形狀就是：先把下面這條訊號鏈上的兩個斷點，由外而內一個一個接起來。
+</p>
+
+<div class="figs">
+  <a class="fig" href="01-stack.html">
+    <b>圖 1 · 技術堆疊</b>
+    <span>訊號從螢幕到畫面經過哪些層，兩個 bug 各卡在哪一層，以及你能改的範圍到哪裡。</span>
+  </a>
+  <a class="fig" href="02-ladder.html">
+    <b>圖 2 · 學習階梯</b>
+    <span>從 build kernel 到解掉 Bug 2 的六個階段，以及近／中／遠程目標的分界。</span>
+  </a>
+  <a class="fig" href="03-m1n1.html">
+    <b>圖 3 · 角色分配</b>
+    <span>哪一台是 target、哪一台是 host，螢幕插哪、trace 在哪裡解碼。</span>
+  </a>
+  <a class="fig" href="04-phases.html">
+    <b>圖 4 · 兩個階段</b>
+    <span>Python 快迴圈找答案、寫下規格、再用 C 寫進 kernel 的慢迴圈。</span>
+  </a>
+</div>
+
+<div class="embed">
+  <div class="bar"><b>圖 1 · 技術堆疊</b><a href="01-stack.html" target="_blank">在新分頁開啟，可全螢幕操作 ↗</a></div>
+  <iframe src="01-stack.html" loading="lazy" title="圖 1 · 技術堆疊"></iframe>
+  <p class="muted" style="font-size:13.5px">圖裡可以切深／淺色、縮放；左上角「Guided Views」有四個視角（訊號主路徑、Bug 1、Bug 2、你能改的範圍），點了會把不相關的部分淡掉。</p>
+</div>
+
+
+<h3>兩個 bug 的性質完全不同</h3>
+
+<table>
+<thead><tr><th></th><th>Bug 1</th><th>Bug 2</th></tr></thead>
+<tbody>
+<tr><th>卡在哪</th><td>Type-C PHY（<code>atcphy</code>）</td><td>DCP firmware 交握</td></tr>
+<tr><th>症狀</th><td><code>atcphy_mux_set</code> WARN<br><code>Failed to lock pipehandler</code></td><td><code>acking unhandled call 20</code><br>link 立刻被拆掉</td></tr>
+<tr><th>屬於</th><td><strong>你的機器</strong>（M1 Pro / t600x）</td><td><strong>你的螢幕</strong>（Studio Display）</td></tr>
+<tr><th>追蹤</th><td><a href="https://github.com/AsahiLinux/linux/issues/601">issue #601</a></td><td><a href="https://github.com/AsahiLinux/linux/issues/579">issue #579</a></td></tr>
+<tr><th>有沒有人做過</th><td>有，PR #622 / #503 / #476，但都沒 merge</td><td>零 PR、零 comment</td></tr>
+<tr><th>難度</th><td>中 —— 已知該做什麼，缺的是在 t600x 上實測</td><td>高 —— <strong>沒人知道正確答案是什麼</strong></td></tr>
+</tbody>
+</table>
+
+<p>
+  順序是固定的：<strong>Bug 1 在前面</strong>。沒過 Bug 1，你連 Bug 2 都看不到。
+  而這兩個是獨立的 —— 換一台普通 USB-C 螢幕，Bug 2 消失但 Bug 1 還在；
+  拿別人的 M1 Air 接 Studio Display，Bug 1 消失只剩 Bug 2。
+  你現在的組合兩個都中，所以<strong>分層測試是整個專案的方法論</strong>。
+</p>
+
+<h2 id="s2"><span class="n">§2</span>遠中近目標</h2>
+
+<div class="grid">
+  <div class="card">
+    <span class="tag t-near">近程 · 數天～兩週</span>
+    <h3 style="margin-top:0">打底</h3>
+    <ul>
+      <li>build 出一顆能開機的 fairydust kernel，舊 kernel 留著隨時退回</li>
+      <li>m1n1 proxy 模式接通，能從 Python 戳暫存器</li>
+      <li>在 #601 / #579 留言自我介紹（見 §8）</li>
+      <li>讀完 Asahi 的 RE 政策原文</li>
+    </ul>
+    <p class="muted" style="margin-bottom:0">
+      <strong>驗收：</strong>你有一個「改 → build → 開機 → 看 dmesg」的迭代迴圈。
+    </p>
+  </div>
+
+  <div class="card">
+    <span class="tag t-mid">中程 · 數週</span>
+    <h3 style="margin-top:0">學會讀</h3>
+    <ul>
+      <li>能在 <code>phy/apple/atc.c</code> 加 <code>printk</code> 並看懂執行路徑</li>
+      <li>能架起 m1n1 hypervisor，錄下一份讀得懂的 trace</li>
+      <li>把 PR #622 / #503 rebase 到現在的 fairydust，在 t600x 上實測</li>
+      <li>回報結果 —— 這件事本身就是社群現在缺的</li>
+    </ul>
+    <p class="muted" style="margin-bottom:0">
+      <strong>驗收：</strong>你看得懂 driver 在對硬體做什麼，也看得懂 trace 在講什麼。
+    </p>
+  </div>
+
+  <div class="card">
+    <span class="tag t-far">遠程 · 無期限</span>
+    <h3 style="margin-top:0">解題</h3>
+    <ul>
+      <li>Bug 1：讓 M1 Pro 的 Type-C port 真的切進 DP 模式</li>
+      <li>Bug 2：從 macOS trace 反推 call 20 的正確回應序列</li>
+      <li>成果送 PR（前提見 §6）</li>
+    </ul>
+    <p class="muted" style="margin-bottom:0">
+      <strong>驗收：</strong>螢幕會亮。但真正的收穫是你不再怕任何一顆沒有文件的晶片。
+    </p>
+  </div>
+</div>
+
+<h2 id="s3"><span class="n">§3</span>完整步驟</h2>
+
+<p>
+  六個階段。每一階段都有可驗收的產出，而且<strong>都不會把機器弄壞</strong> ——
+  最差的情況是白花一個下午 build kernel。
+</p>
+
+<div class="embed">
+  <div class="bar"><b>圖 2 · 學習階梯</b><a href="02-ladder.html" target="_blank">在新分頁開啟，可全螢幕操作 ↗</a></div>
+  <iframe src="02-ladder.html" loading="lazy" title="圖 2 · 學習階梯"></iframe>
+  <p class="muted" style="font-size:13.5px">上排是六個階段，下排是里程碑；上方三個色帶對應近／中／遠程。</p>
+</div>
+
+
+<div class="stage">
+  <h3>階段 0 · build 一顆 fairydust kernel</h3>
+  <p class="muted">環境：裝好的 Asahi Linux ｜ 產出：迭代迴圈</p>
+  <p>
+    USB-C 出圖的程式碼還沒進正式 kernel，在 <code>fairydust</code> 分支上。
+    <strong>不用重裝系統</strong> —— kernel 只是一個 package，你多裝一顆並存，開機時選。
+  </p>
+  <ol>
+    <li>clone fairydust 分支</li>
+    <li><code>.config</code> <strong>一定要從現在的 <code>kernel-16k</code> config 起手</strong>。
+        Apple Silicon 上 16K pages 是必需的，這是最容易踩的坑</li>
+    <li>開啟 DP alt mode 相關選項，建議編成 module（方便用 <code>dmesg</code> 確認有沒有載到）</li>
+    <li>build kernel <strong>加 DTB</strong> —— Asahi 靠 device tree，別只裝 vmlinuz</li>
+    <li>確認 GRUB 選單會顯示（Asahi 預設會跳過），否則你沒地方選回舊 kernel</li>
+  </ol>
+  <div class="callout">
+    <strong>可能不用自己來。</strong>
+    <a href="https://github.com/bharambetejas/asahi-fairydust-display">bharambetejas/asahi-fairydust-display</a>
+    已經把整條流程自動化，而且就是針對 Fedora Asahi Remix。
+    先讀它的 README，確認它有沒有處理 t600x 的 DTS、有沒有內含 #622 的修正。<br><br>
+    <strong>如果它沒處理 t600x 的 DTS</strong>，就把
+    <a href="https://github.com/AsahiLinux/linux/pull/476">PR #476</a> 的 dts 改動 cherry-pick 進去 ——
+    那個 PR 就是專門為 M1 Pro/Max MacBook Pro 開 <code>dp-altmode</code> 的，雖然被放生了，但正是你要的東西。
+  </div>
+  <div class="callout">
+    <strong>你的 MBP 跑 omadora（Fedora Asahi Remix + Hyprland），這裡要先設防。</strong>
+    <code>omarchy update</code> 會跑 <code>dnf upgrade --refresh</code> 加上自己的 git migration，所以：
+    <ul style="margin-bottom:0">
+      <li>Fedora 預設只留 3 顆 kernel（<code>installonly_limit</code>），
+          <strong>你 build 的 fairydust 可能被官方 kernel 擠掉</strong> ——
+          先用 <code>dnf versionlock</code> 或調高 <code>installonly_limit</code></li>
+      <li>它<strong>不會</strong>幫你重 build fairydust，上游有新 commit 要自己重跑</li>
+    </ul>
+  </div>
+</div>
+
+<div class="stage">
+  <h3>階段 0.5 · m1n1 proxy 的 Python REPL</h3>
+  <p class="muted">環境：裸機 + Mac mini ｜ 產出：對 MMIO 的直覺</p>
+  <p>
+    m1n1 proxy mode 是一個<strong>跑在裸機上的 Python REPL</strong>。
+    <code>m1n1/hw/*.py</code> 裡有一堆現成的暫存器對照表類別。
+  </p>
+  <pre><code>export M1N1DEVICE=/dev/cu.usbmodemP_01   # Mac mini 當 host
+
+p.read32(addr)
+p.write32(addr, val)</code></pre>
+  <p>
+    讀 device tree 找到一個 block、從 Python 戳它的暫存器、看硬體有什麼反應。
+    沒有別的東西能這麼快建立「軟體到底對硬體做了什麼」的直覺。
+  </p>
+  <div class="callout">
+    <strong>這裡開始有兩套環境</strong>，共用同一台機器，從第一天就要分清楚：<br>
+    ① <strong>proxy 裸機模式</strong>（接 mini、學習用，這時候沒有 Linux 在跑）<br>
+    ② <strong>裝好的 Asahi</strong>（寫 driver、測 driver）
+  </div>
+</div>
+
+<div class="stage">
+  <h3>階段 1 · 讀 driver</h3>
+  <p class="muted">環境：裝好的 Asahi ｜ 產出：讀得懂程式碼</p>
+  <p>
+    在現有 driver 加 <code>printk</code>，看它實際跑到哪一行。目標檔案兩個：
+  </p>
+  <ul>
+    <li><code>drivers/phy/apple/atc.c</code> —— Type-C PHY，<strong>直接讀寫實體暫存器，中間沒有魔法</strong>。
+        對「想搞懂硬體到 kernel 那段空白」的人來說，這是教科書等級的清楚</li>
+    <li><code>drivers/gpu/drm/apple/</code> —— DCP 的 mailbox RPC，抽象好幾層，晚一點再啃</li>
+  </ul>
+</div>
+
+<div class="stage">
+  <h3>階段 2 · 先 trace 簡單的裝置</h3>
+  <p class="muted">環境：m1n1 hypervisor ｜ 產出：讀得懂 tracer 輸出</p>
+  <p>
+    架起 hypervisor（做法見 <a href="03-m1n1.html">圖 3</a> 與 §5），但<strong>第一次別碰 DCP</strong>。
+    先找一個簡單的裝置錄一份 trace，把「這串輸出在講什麼」搞清楚。
+  </p>
+</div>
+
+<div class="stage key">
+  <h3>階段 3 · 轉接頭雙邊 trace　<span class="muted" style="font-weight:400">← 整條路的脊椎</span></h3>
+  <p class="muted">環境：m1n1 hypervisor ｜ 產出：Bug 1 的答案 + 讀 DCP 的能力</p>
+  <p>
+    插一個便宜的 <strong>USB-C → HDMI 轉接頭</strong>，在 macOS 和 Linux 兩邊都錄 trace，然後 diff。
+  </p>
+  <p>
+    關鍵在於：這是一個<strong>你知道正確答案</strong>的案例。macOS 那邊會動、Linux 這邊不會，
+    差異就是答案 —— 你不會卡在「我看不懂這段是對是錯」。
+  </p>
+  <div class="callout">
+    <strong>要用轉接頭，不要用內建 HDMI 孔。</strong>
+    14" MBP 的 HDMI 走獨立的 DP→HDMI 轉換晶片，它的 DCP 對話形狀跟 Type-C 路徑<strong>不一樣</strong>。
+    轉接頭走的才是同一條 <code>atcphy → dcpext → dptx</code>，只是少了那顆 A13。
+  </div>
+  <p>
+    而且這一步<strong>同時就是 Bug 1 的測試</strong>：如果轉接頭能出圖，Bug 1 對你就算解決了。
+    一個練習，兩個收穫。
+  </p>
+</div>
+
+<div class="stage">
+  <h3>階段 4 · Studio Display</h3>
+  <p class="muted">環境：m1n1 hypervisor + driver ｜ 產出：Bug 2</p>
+  <p>
+    掛上 <code>trace_dcp.py</code>、開 macOS、插上 Studio Display，在 proxy 終端找
+    <strong>call 20（<code>DPTX_APCALL_INACTIVE_SINK_DETECTED</code>）</strong>，
+    看 macOS 回了什麼、接下來的幾十筆 message 是什麼順序。
+  </p>
+  <p>
+    <strong>第一次的目標不是解決問題，是確認「call 20 有被錄到」。</strong>
+    錄得到，剩下就是讀懂序列；錄不到（例如 macOS 在 hypervisor 下走了別條路），那是另一個要先解的問題。
+  </p>
+  <p class="muted">
+    一個未知數：「叫醒 A13」未必全在 DCP 這條路上，也可能有一部分走 USB-PD（<code>tipd</code>），
+    也就是修改點可能橫跨兩個 driver。這件事 trace 出來的第一天就會知道。
+  </p>
+</div>
+
+<h2 id="s4"><span class="n">§4</span>兩個階段：Python 找答案，C 寫進 kernel</h2>
+
+<p>
+  整個專案用兩種語言，節奏差了三個數量級。搞混這件事會浪費非常多時間。
+</p>
+
+<div class="embed">
+  <div class="bar"><b>圖 4 · 兩個階段</b><a href="04-phases.html" target="_blank">在新分頁開啟，可全螢幕操作 ↗</a></div>
+  <iframe src="04-phases.html" loading="lazy" title="圖 4 · 兩個階段"></iframe>
+  <p class="muted" style="font-size:13.5px">注意兩條虛線回頭箭頭：那是兩個迴圈，上面那條幾秒一圈，下面那條幾十分鐘一圈。</p>
+</div>
+
+
+<div class="grid">
+  <div class="card">
+    <span class="tag t-mid">階段 A · 一次幾秒</span>
+    <h3 style="margin-top:0">研究（Python，在 host 上）</h3>
+    <p>改 tracer → 重跑 → 再看。目的是<strong>找出答案</strong>。</p>
+    <p class="muted" style="margin-bottom:0">
+      <code>trace_dcp.py</code> 是<strong>量測儀器，不是產品</strong> ——
+      它永遠不會進 kernel，也不會出現在你的 PR 裡。
+    </p>
+  </div>
+  <div class="card">
+    <span class="tag t-far">階段 B · 一次幾十分鐘</span>
+    <h3 style="margin-top:0">實作（C，在 kernel 裡）</h3>
+    <p>改 C → build → 重開機 → 看 <code>dmesg</code>。目的是<strong>讓 Linux 真的會動</strong>。</p>
+    <p class="muted" style="margin-bottom:0">
+      把 call 20 從現在的「盲目 ack」換成照序列做事的 handler，
+      位置在 <code>drivers/gpu/drm/apple/</code>。
+    </p>
+  </div>
+</div>
+
+<h3>中間那個交接點才是重點</h3>
+<p>
+  階段 A 的產出<strong>不是程式碼，是一份規格</strong>，大概長這樣：
+</p>
+<div class="callout">
+  DCP 送 call 20 之後，macOS 回了 ⟨某個值⟩，接著依序做了 A、B、C，然後 link training 才開始。
+</div>
+<p>
+  這份文字有三個用途：你自己照它寫 C、貼到 <a href="https://github.com/AsahiLinux/linux/issues/579">#579</a> 讓別人能接手、
+  以及它本身就是 clean room 的標準結構（觀察 → 寫規格 → 照規格實作，你只是一個人扮兩個角色）。
+</p>
+<p>
+  <strong>先在 Python 階段把事情弄清楚，再動 C。</strong>
+  帶著一半的猜測去改 kernel，你會把大量時間花在等 build 上。
+</p>
+
+<div class="callout">
+  <strong>Bug 1 不用經過階段 A。</strong>
+  它的答案已經知道了（<a href="https://github.com/AsahiLinux/linux/pull/622">#622</a>：切 mode 前先 park PIPE handler），
+  所以 Bug 1 從頭到尾都是階段 B —— cherry-pick、build、測。
+  <strong>這也是它適合當第一題的原因：它只需要階段 B 的技能。</strong>
+  先在一個答案已知的題目上把「改 C → build → 測」練熟，之後 Bug 2 才有餘力專心在階段 A 的難處上。
+</div>
+
+<h2 id="s5"><span class="n">§5</span>角色、機器與版本</h2>
+
+<div class="embed">
+  <div class="bar"><b>圖 3 · 角色分配</b><a href="03-m1n1.html" target="_blank">在新分頁開啟，可全螢幕操作 ↗</a></div>
+  <iframe src="03-m1n1.html" loading="lazy" title="圖 3 · 角色分配"></iframe>
+  <p class="muted" style="font-size:13.5px">左邊黃框是 host（MacBook Pro），右邊紅框是 target（Mac mini）。Studio Display 接在 target 那一側。</p>
+</div>
+
+<h3>兩個角色，不要搞混</h3>
+
+<table>
+<thead><tr><th></th><th>target（被觀測）</th><th>host（旁觀者）</th></tr></thead>
+<tbody>
+<tr><th>跑什麼</th><td>m1n1（EL2）+ macOS guest（EL1）</td><td>Python proxyclient</td></tr>
+<tr><th>螢幕插哪</th><td><strong>插在這台</strong></td><td>不插</td></tr>
+<tr><th>trace</th><td>硬體在這裡產生、m1n1 在這裡攔截</td><td>在這裡解碼、印出來</td></tr>
+<tr><th>需要什麼</th><td>一份 macOS 14.8.3、m1n1</td><td>一條 USB 線、python</td></tr>
+</tbody>
+</table>
+
+<p>
+  必須是同一台的原因很直接：你要觀測的是「<strong>target 的 DCP 在有螢幕插進來時做了什麼</strong>」。
+  螢幕插到 host 上，你什麼都錄不到。host 純粹是個終端機 —— 因為 target 那時候的畫面正被 guest 佔著。
+</p>
+
+<h3>你這兩台怎麼分配</h3>
+
+<pre><code>Mac mini（target）  ← Studio Display 插這裡
+      │ USB
+      ↓
+MacBook Pro（host） ← 用內建螢幕看 trace</code></pre>
+
+<ul>
+  <li><strong>MBP 當 host</strong>：它有內建螢幕，不用再找一台顯示器給 host 看 trace</li>
+  <li><strong>mini 當 target</strong>：它是 <strong>t8103（原版 M1）</strong>，<strong>沒有 Bug 1</strong> ——
+      插上 Studio Display 就是一個乾淨的 Bug 2 測試台。而且 t8103 正是 fairydust 唯一有成功紀錄的 SoC</li>
+  <li>搞砸了不會動到你的筆電</li>
+</ul>
+
+<p class="muted">
+  之後要測 Bug 1（t600x 專屬）時角色對調：MBP 變 target、mini 變 host，那時 Studio Display 插到 MBP，
+  mini 得自己找個畫面（HDMI 接台電視就行）。<strong>同一時間一台機器只能扮一個角色。</strong>
+</p>
+
+<h3>捕獲在 target，解讀在 host</h3>
+<p>
+  m1n1 的 hypervisor 是 <strong>Python 驅動</strong>的：target 上攔到事件後透過 USB 回報給 host，
+  由 host 上的 Python 決定怎麼解讀、要不要放行。所以 <code>-m proxyclient/hv/trace_dcp.py</code>
+  掛的那個模組，<strong>是在 host 上執行的</strong>。
+</p>
+<p>
+  這表示你之後要加解碼邏輯是<strong>在 host 上寫 Python</strong>，不是在 target 上改 C ——
+  也就是 §4 說的那個快迴圈。
+</p>
+
+<h3>怎麼分辨是 kernel 的問題還是 Hyprland 的問題</h3>
+
+<p>
+  你的 MBP 跑 Hyprland，這會製造一種很容易誤判的情況：<strong>kernel 其實已經把螢幕接起來了，但畫面就是沒出來</strong>。
+  這不是假設 —— <a href="https://github.com/AsahiLinux/linux/pull/622">PR #622</a> 的作者就留了這個已知問題：
+  「重新接上之後，userspace 沒有對 BAD link status 做出反應，要手動 toggle output」。那是合成器層，不是 kernel。
+</p>
+
+<p>所以每次測試都照這個順序查，對應<a href="01-stack.html">圖 1</a> 的層次：</p>
+
+<pre><code># ① kernel 有沒有看到這個接頭？
+ls /sys/class/drm/
+cat /sys/class/drm/*/status          # connected / disconnected
+
+# ② 有沒有拿到 mode？
+cat /sys/class/drm/card*/*/modes
+
+# ③ 合成器有沒有接手？
+hyprctl monitors all
+wlr-randr
+
+# ④ 底層在講什麼
+dmesg | grep -iE 'dcp|atcphy|tipd|typec|altmode'</code></pre>
+
+<table>
+<thead><tr><th>① connector</th><th>② modes</th><th>③ Hyprland</th><th>結論</th></tr></thead>
+<tbody>
+<tr><td>disconnected</td><td>—</td><td>—</td><td>卡在 <strong>Bug 1</strong>（atcphy，訊號沒出去）</td></tr>
+<tr><td>connected</td><td>空的</td><td>—</td><td>卡在 <strong>Bug 2</strong>（DCP 沒給 mode）</td></tr>
+<tr><td>connected</td><td>有 mode</td><td>沒看到</td><td><strong>Hyprland 的問題</strong>，kernel 那邊其實通了</td></tr>
+</tbody>
+</table>
+
+<p class="muted">第三種情況是好消息 —— 代表你已經穿過兩個 bug 了，剩下的是 userspace 設定。</p>
+
+<h3>版本規則：真正擋人的是「出廠版本」</h3>
+
+<p>
+  一個常見的誤解（我也搞錯過）：以為不能裝比目前韌體舊的 macOS。實際規則是——
+</p>
+<div class="callout">
+  <strong>任何 Mac 都不能開機於比它「出廠時那一版」更舊的 macOS。</strong>
+  而在 Recovery 裡對一個獨立的 volume group 安裝舊版時，<strong>韌體不會被改動</strong>。
+</div>
+
+<table>
+<thead><tr><th>機器</th><th>出廠版本</th><th>裝 14.8.3</th></tr></thead>
+<tbody>
+<tr><td>MacBook Pro 14" M1 Pro（2021）</td><td>macOS 12 Monterey</td><td>✅ 可以</td></tr>
+<tr><td>Mac mini M1（2020）</td><td>macOS 11 Big Sur</td><td>✅ 可以</td></tr>
+</tbody>
+</table>
+
+<p>
+  所以<strong>你現在跑 macOS 26 不影響這件事</strong>，兩台都在範圍內。
+  兩個要注意的：
+</p>
+<ul>
+  <li>第二份 macOS 需要<strong>完整的 volume group</strong>（System + Data + 配對的 Recovery，獨立 container），
+      不是在現有 container 裡多切一個 volume</li>
+  <li><strong>選 14.8.3 不要選 13.5</strong>。文件兩個都列，但新版 macOS 裝的安全性變更「可能影響使用明顯更舊版本的能力」。
+      14.8.3 離現在近、風險小；真出問題 13.5 還在後面當備案</li>
+</ul>
+
+<div class="callout stop">
+  <strong>你的韌體組合跟別人不一樣，這會影響你看到的症狀。</strong>
+  <ul style="margin-bottom:0">
+    <li>你的 DCP 韌體來自 <strong>macOS 26</strong>，而 #601 / #579 的回報者用的版本老得多</li>
+    <li>你的 <strong>Studio Display 今年更新過韌體</strong>，#579 是 2024 年 8 月報的</li>
+    <li>DCP 的協議<strong>會隨韌體版本改變</strong>（driver 裡有針對不同版本的 struct layout）</li>
+  </ul>
+  <br>
+  所以<strong>別照抄別人的症狀去比對</strong>。雙面的：可能更難，也可能 Apple 這兩年已經改掉了。
+  但無論如何，你會是第一個拿到這個組合資料點的人。
+</div>
+
+<h3>怎麼架起來</h3>
+
+<p>
+  這不是虛擬機。macOS 跑在你<strong>真正的 M1 Pro CPU</strong> 上，原生速度、真的硬體；
+  m1n1 待在 EL2，只把幾頁 MMIO 設成 trap，攔下來記錄再放行。macOS 本體<strong>不用改</strong>。
+  完整的角色分配見 <a href="03-m1n1.html">圖 3</a>。
+</p>
+
+<h3>在 1TR Recovery Terminal 裡（對測試 volume 做）</h3>
+<pre><code>bputil -nkcas          # 降安全模型
+csrutil disable        # 關 SIP
+nvram boot-args=-v
+kmutil configure-boot -c build/m1n1.bin --raw --entry-point 2048 \
+  --lowest-virtual-address 0 -v /Volumes/macOSTest</code></pre>
+
+<h3>取得 macOS kernel</h3>
+<p>開進測試 volume，從這裡挖 <code>kernelcache</code>，用 <code>img4tool</code> 解出 Mach-O：</p>
+<pre><code>/System/Volumes/Preboot/[UUID]/boot/[hash]/System/Library/Caches/com.apple.kernelcaches/</code></pre>
+
+<h3>在 Mac mini 上跑</h3>
+<pre><code>export M1N1DEVICE=/dev/cu.usbmodemP_01
+
+# 每次都先 chainload working tree 的 m1n1
+python3 proxyclient/tools/chainload.py build/m1n1.macho
+
+# 掛著 DCP tracer 開 macOS
+python3 proxyclient/tools/run_guest.py \
+  -m proxyclient/hv/trace_dcp.py \
+  path/to/kernelcache.macho \
+  -- "debug=0x14e serial=3 apcie=0xfffffffe -enable-kprintf-spam wdt=-1 clpc=0"</code></pre>
+
+<h3>兩個終端機視窗</h3>
+<table>
+<thead><tr><th>裝置</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td><code>cu.usbmodemP_01</code><br><span class="muted">Linux host 是 <code>ttyACM0</code></span></td>
+    <td><strong>proxy</strong> —— <code>run_guest.py</code> 走這條，trace 輸出印在這裡</td></tr>
+<tr><td><code>cu.usbmodemP_03</code><br><span class="muted">Linux host 是 <code>ttyACM1</code></span></td>
+    <td><strong>guest 虛擬 UART</strong> —— macOS 自己的 console</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+  <strong>關於「接線孔會不會跟螢幕打架」。</strong>
+  14" MBP 只有 3 個 USB-C（左 2 右 1），而<strong>後方左側那孔</strong>是唯一能進 DFU 模式的。
+  但 m1n1 文件寫得很清楚：proxy mode 的 USB 除錯介面
+  <strong>「available on all Thunderbolt ports」</strong> —— 也就是<strong>每個孔都能用</strong>。<br><br>
+  所以實際做法是：<strong>用後左孔進 DFU / 載入 m1n1，proxy 連線則可以接在別的孔</strong>，
+  把 DTS 指定給 DP 的那個孔空出來留給螢幕。
+  <span class="muted">（文件只明講 proxy 的部分；「DFU 孔只在進 DFU 時才必要」是合理推論，
+  真的接起來一次就知道。這也是值得順手在 issue 裡問一句的事。）</span>
+</div>
+
+<h2 id="s6"><span class="n">§6</span>規矩（決定你的成果能不能上游）</h2>
+
+<p>
+  Asahi 有三份政策要遵守：Code of Conduct、<strong>Copyright and Reverse Engineering Policy</strong>、
+  Generative AI Policy。第二份才是真正規範你日常工作的，動手前務必自己讀原文。
+</p>
+
+<h3>工作守則</h3>
+<p style="font-size:18px">
+  觀察硬體行為　→　自己理解　→　自己寫　→　送 PR
+</p>
+<p>
+  這條路徑同時滿足法律安全與政策合規，而且也是最快的。原因：
+</p>
+<ul>
+  <li><strong>載入 Apple firmware 原封不動跑</strong> ✅ —— 你買 Mac 時就取得授權，沒有複製、沒有散布。
+      Asahi 從不散布 firmware，是從你自己機器的 macOS 抓的</li>
+  <li><strong>觀察行為、自己寫實作</strong> ✅ —— 觀測到的是<em>事實</em>，事實不受著作權保護</li>
+  <li><strong>反編譯 Apple driver 來改</strong> ❌ —— 衍生作品；而且 Linux 是 GPL，你無權重新授權</li>
+</ul>
+
+<div class="callout stop">
+  <strong>LLM 的界線（含我）。</strong>
+  Asahi 的 Generative AI Policy 是<strong>禁令，不是揭露制度</strong> ——
+  說明手法只影響罰則輕重，不影響允不允許。而且政策裡<strong>點名</strong>
+  「用 LLM 解讀 m1n1 hypervisor 的 trace」會收到警告。
+  <a href="https://github.com/AsahiLinux/linux/pull/622">PR #622</a> 就是因此被關掉的，不是技術問題。<br><br>
+  <strong>這是單向門</strong>：一旦透過這個管道學到那段機制，沒辦法事後洗掉再乾淨地貢獻同一份成果。
+  所以守得住的規則是 —— <strong>別把 trace 內容貼進 LLM</strong>，讓那份資料根本沒進到模型的 context。
+  通用機制（DP link training、mailbox RPC 概念、工具怎麼用）可以問；「我錄到這段是什麼意思」不要問。<br><br>
+  <span class="muted">政策管的是對 Asahi 的貢獻，<strong>不管你在自己機器上跑什麼</strong>。
+  只想修好自己的螢幕、不打算上游，這個限制完全不存在。</span>
+</div>
+
+<h2 id="s7"><span class="n">§7</span>材料清單</h2>
+
+<h3>硬體</h3>
+<ul class="chk">
+  <li class="have">MacBook Pro 14" M1 Pro（<code>MacBookPro18,3</code>，t600x）—— target</li>
+  <li class="have">Mac mini —— host，跑 python proxyclient。<span class="muted">只需要能跑 python 和認到 USB 序列裝置；官方文件是以 host OS（macOS / Linux）區分裝置節點名稱，沒有對 host 的 CPU 設限。</span></li>
+  <li class="have">Apple Studio Display —— 最終目標</li>
+  <li><strong>USB 線</strong>：先試 Apple 原廠 USB-C 充電線（C-to-C，<strong>不要用 Thunderbolt 線</strong>）；
+      不順就換 USB-C→USB-A（m1n1 文件建議這種，插 host 的 USB-A 孔）</li>
+  <li class="have"><strong>ThinkPad X1 Gen 9</strong>（可選的 host）—— host 是純終端機，
+    <strong>x86 和 arm64 沒有差別</strong>，Asahi 開發者多數就是用 x86 Linux 當 host。
+    <span class="muted">唯一差別是編譯 m1n1 要裝交叉編譯器（<code>gcc-aarch64-linux-gnu</code>），
+    而在 Mac 上一樣要裝裸機工具鏈。用它當 host 可以把 MBP 空出來當日常機。
+    注意：萬一 target 需要 DFU revive，那只能用 Mac 做。</span></li>
+  <li><strong>一台「笨」螢幕</strong> —— 階段 3 的關鍵材料，用來把 Bug 1 和 Bug 2 拆開。
+    <br><span class="muted">建議挑<strong>同時有 USB-C（DP Alt Mode）和 HDMI 輸入</strong>的：
+    USB-C 那孔測 Bug 1，HDMI 那孔測 MBP 內建 HDMI 在 macOS 26 韌體下還會不會動，平常還能當第二螢幕。</span>
+    <ul>
+      <li>必要：USB-C 輸入要標明支援 <strong>DP Alt Mode</strong>（有些 USB-C 孔只供電或只傳資料）</li>
+      <li>❌ 避開 <strong>DisplayLink</strong>：它走 USB 資料由 CPU 算圖，<strong>完全繞過 DP 路徑</strong> ——
+          可能真的會出圖，但你什麼都沒測到，還會誤判 Bug 1 已解決</li>
+      <li>❌ 不要 Apple 的顯示器：有內建處理器就會觸發 Bug 2，失去拆開兩個 bug 的意義</li>
+      <li>❌ 沒有「Thunderbolt 專用」這種規格，買普通的就好</li>
+      <li>加分：#601 的回報者用的是 ARZOPA Z1FC 16" USB-C 隨身螢幕（純供電模式），
+          買同類型回報時可比性最高 —— 但非必要</li>
+    </ul>
+  </li>
+  <li><span class="muted">替代方案：USB-C → HDMI 轉接頭 + 現有的電視，最便宜，一樣避開 DisplayLink</span></li>
+  <li>外接 SSD（選配）—— 放測試用的 macOS volume，不佔內建空間</li>
+</ul>
+
+<h3>軟體與帳號</h3>
+<ul class="chk">
+  <li class="have">Fedora Asahi Remix（已裝）</li>
+  <li><strong>macOS 14.8.3</strong>（備案 13.5），裝在 target 機器上一個<strong>完整的獨立 volume group</strong>。
+      不要用你現在的 macOS 安裝。你的兩台機器出廠版本都夠舊，macOS 26 不會擋住這件事（見 §5）</li>
+  <li>m1n1 repo + python proxyclient 相依套件（裝在 Mac mini 上）</li>
+  <li><code>img4tool</code> —— 解 kernelcache</li>
+  <li>GitHub 帳號 —— 留言、送 PR</li>
+  <li>Apple Developer 帳號（選配）—— 下載 KDK 取得帶符號的 kernel。第一次可以不用</li>
+</ul>
+
+<div class="callout">
+  <strong>firmware 版本要對齊。</strong>
+  Asahi 直接載入 macOS 安裝裡的 DCP firmware，而協議<strong>會隨 firmware 版本改變</strong>
+  （driver 裡有針對不同版本的 struct layout）。錄 trace 的版本要跟你 Linux 下跑的同一版。
+  這是一般 Linux 驅動開發者不會遇到的概念，但它會解釋掉你之後看到的一半怪現象。
+</div>
+
+<h3>要補的知識地圖</h3>
+<p>
+  MMIO（記憶體映射 I/O）· 中斷 · DMA / IOMMU · clock 與 power domain ·
+  device tree · bus 列舉 · 協處理器的 mailbox / RPC ·
+  <strong>firmware 版本化的 ABI</strong>（Asahi 特有）
+</p>
+
+<h3>語言</h3>
+<p>
+  這個社群大多數人母語都不是英文；你的貢獻內容 —— <code>dmesg</code>、trace dump、
+  「這樣會動／不會動」—— 是語言中性的；issue tracker 是非同步的，一則訊息花一小時寫沒人在意。
+  用翻譯工具處理<em>你自己要講的話</em>跟查字典一樣，不涉及 trace 解讀，碰不到政策那條線。
+</p>
+
+<h2 id="s8"><span class="n">§8</span>現在就能做的事</h2>
+
+<div class="card">
+<ol>
+  <li>
+    <strong>到 <a href="https://github.com/AsahiLinux/linux/issues/601">#601</a> 和
+    <a href="https://github.com/AsahiLinux/linux/issues/579">#579</a> 留言</strong>：
+    說你有 14" M1 Pro（t600x）+ Studio Display，願意錄 trace、測 patch。
+    順便問 fairydust 的 dts 把哪個 port 指定給 DP，好安排接線（見 §5 的說明）。
+    <span class="muted">這個組合目前沒有第二個人有，開口就會有人理你。</span>
+  </li>
+  <li><strong>去 omadora 的「External monitor discussion」看一圈、留個言</strong>。
+    那裡的人跟你<strong>同樣的發行版、同樣的合成器、同樣的硬體家族</strong>，
+    比 Asahi 主 repo 更可能已經有人踩過你要踩的坑
+    （<a href="https://github.com/malik-na/omadora">malik-na/omadora</a>）</li>
+  <li><strong>測一下 MBP 的內建 HDMI 孔現在會不會動</strong>。
+    feature matrix 對 14/16" 的註記是「13.5 FW only」，而你跑 macOS 26 韌體 ——
+    兩分鐘就有答案，不管結果是什麼都是有用情報</li>
+  <li><strong>自己讀一遍</strong> Copyright and Reverse Engineering Policy 原文</li>
+  <li><strong>在 Mac mini 上開一個完整的 volume group</strong>，裝 macOS 14.8.3（見 §5）</li>
+  <li><strong>MBP 上 clone m1n1</strong>，確認 proxyclient 跑得動、USB 線接得通
+    <span class="muted">（MBP 是 host，mini 是 target）</span></li>
+</ol>
+<p class="muted" style="margin-bottom:0">
+  前三步不用寫任何程式碼，但會決定後面順不順。第 1 步尤其值得先做。
+</p>
+</div>
+
+<h2 id="s9"><span class="n">§9</span>連結索引</h2>
+
+<h3>你的兩個 bug</h3>
+<ul>
+  <li><a href="https://github.com/AsahiLinux/linux/issues/601">#601 —— M1 Pro <code>atcphy_mux_set</code> / Failed to lock pipehandler</a></li>
+  <li><a href="https://github.com/AsahiLinux/linux/issues/579">#579 —— Studio Display unhandled AP call 20</a></li>
+</ul>
+
+<h3>相關 PR（都沒 merge，但程式碼可用）</h3>
+<ul>
+  <li><a href="https://github.com/AsahiLinux/linux/pull/622">#622 —— Fix external display hotplug on DP alt mode</a>（因 AI policy 被關）</li>
+  <li><a href="https://github.com/AsahiLinux/linux/pull/503">#503 —— Fix/atcphy pipehandler</a>（仍 open）</li>
+  <li><a href="https://github.com/AsahiLinux/linux/pull/476">#476 —— dts: Enable dp-altmode for M1 Pro/Max MacBook Pro</a>（放生，但正是你的機型）</li>
+</ul>
+
+<h3>工具與現成方案</h3>
+<ul>
+  <li><a href="https://github.com/bharambetejas/asahi-fairydust-display">asahi-fairydust-display</a> —— Fedora Asahi 的自動化 build</li>
+  <li><a href="https://github.com/OliRafa/omarchy-fairydust-kernel">omarchy-fairydust-kernel</a> —— 含 #622 的 <code>-dp622</code> target（Arch，可參考）</li>
+  <li><a href="https://gist.github.com/flightmansam/3e9a88a269e9a5f8e87489d9912d9432">Studio Display 的 HDMI 轉接鏈</a> —— 過渡方案，但只有 4K、預設無音訊</li>
+  <li><a href="https://github.com/malik-na/omadora">malik-na/omadora</a> —— 你 MBP 上的環境（Fedora Asahi Remix + Hyprland），內有 External monitor discussion</li>
+</ul>
+
+<h3>官方文件</h3>
+<ul>
+  <li><a href="https://asahilinux.org/docs/sw/m1n1-hypervisor/">Running macOS under the m1n1 hypervisor</a></li>
+  <li><a href="https://asahilinux.org/docs/sw/m1n1-user-guide/">m1n1 User Guide</a></li>
+  <li><a href="https://asahilinux.org/docs/platform/feature-support/m1/">M1 Series Feature Support</a></li>
+  <li><a href="https://asahilinux.org/contribute/">Contribute</a>（三份政策的入口）</li>
+  <li><a href="https://asahilinux.org/llm-policy/">Generative AI Policy</a></li>
+  <li><a href="https://discussion.fedoraproject.org/t/switch-to-the-kernel-16k-variant/87711">kernel-16k 討論</a></li>
+</ul>
+
+<footer>
+  最後更新 2026-09-18 ｜ 三張圖支援深色／淺色主題、縮放、搜尋與匯出，直接用瀏覽器開啟即可。<br>
+  本頁的政策判讀是依據公開文件的推論，<strong>只有 Asahi 自己能認定</strong> —— 動手前先去問一次。
+</footer>
+
+</main>
+</div>
+</div>
+<script>
+(function(){
+  var r=document.documentElement, b=document.getElementById('tt'), saved=null;
+  try{ saved=localStorage.getItem('theme'); }catch(e){}
+  function set(t){
+    r.setAttribute('data-theme',t);
+    b.textContent = t==='dark' ? '淺色' : '深色';
+    try{ localStorage.setItem('theme',t); }catch(e){}
+  }
+  set(saved==='dark'||saved==='light'||saved==='auto' ? saved : 'light');
+  b.addEventListener('click',function(){
+    set(r.getAttribute('data-theme')==='dark' ? 'light' : 'dark');
+  });
+})();
+(function(){
+  var links=[].slice.call(document.querySelectorAll('#toclist a'));
+  var secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  function spy(){
+    var best=0;
+    for(var i=0;i<secs.length;i++){ if(secs[i] && secs[i].getBoundingClientRect().top<=120) best=i; }
+    links.forEach(function(a,i){ a.classList.toggle('on', i===best); });
+  }
+  window.addEventListener('scroll',spy,{passive:true}); spy();
+})();
+</script>
+</body>
+</html>

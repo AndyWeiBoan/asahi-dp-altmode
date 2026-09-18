@@ -1,0 +1,54 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "兩個階段、兩種語言：Python 找答案，C 寫進 kernel",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": { "label": "你動手的步驟" },
+        "external": { "label": "產出物" },
+        "security": { "label": "關鍵交接點" }
+      }
+    },
+    "views": [
+      { "id": "fast", "label": "階段 A：快迴圈", "focus": ["a1", "a2", "a3"], "note": "改 Python、重跑、再看，一次幾秒 —— 探索都在這裡做完。" },
+      { "id": "spec", "label": "交接：寫下規格", "focus": ["a3", "sp", "b1"], "note": "研究的產出不是程式碼，是一份可以照著實作的序列說明。" },
+      { "id": "slow", "label": "階段 B：慢迴圈", "focus": ["b1", "b2"], "note": "改 C 要重 build 重開機，所以進來之前要先有把握。" }
+    ]
+  },
+  "lanes": [
+    { "id": "res", "label": "研究（Python，在 host）" },
+    { "id": "out", "label": "產出" },
+    { "id": "impl", "label": "實作（C，在 kernel）" }
+  ],
+  "phases": [
+    { "id": "pa", "label": "階段 A：一次幾秒", "fromCol": 0, "toCol": 2 },
+    { "id": "hx", "label": "交接", "fromCol": 3, "toCol": 3, "variant": "emphasis" },
+    { "id": "pb", "label": "階段 B：一次幾十分鐘", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": ["a1", "a2", "a3", "sp", "b1", "b2"],
+  "nodes": [
+    { "id": "a1", "lane": "res", "col": 0, "type": "backend", "label": "改 tracer", "sublabel": "多印一點 / 加解碼", "width": 138 },
+    { "id": "a2", "lane": "res", "col": 1, "type": "backend", "label": "重跑 guest", "sublabel": "插上螢幕再看一次", "width": 138 },
+    { "id": "a3", "lane": "res", "col": 2, "type": "backend", "label": "看懂序列", "sublabel": "call 20 之後做了什麼", "width": 138 },
+    { "id": "sp", "lane": "out", "col": 3, "type": "security", "label": "寫下規格", "sublabel": "這份也貼到 #579", "width": 138, "tag": "真正的產出" },
+    { "id": "b1", "lane": "impl", "col": 4, "type": "backend", "label": "寫 C handler", "sublabel": "drm/apple 的 call 表", "width": 138 },
+    { "id": "b2", "lane": "impl", "col": 5, "type": "external", "label": "驗證", "sublabel": "build → 重開 → dmesg", "width": 138 }
+  ],
+  "edges": [
+    { "from": "a1", "to": "a2" },
+    { "from": "a2", "to": "a3", "label": "讀輸出" },
+    { "from": "a3", "to": "sp", "label": "整理成文字", "variant": "emphasis" },
+    { "from": "sp", "to": "b1", "label": "照規格實作", "variant": "emphasis" },
+    { "from": "b1", "to": "b2" },
+    { "from": "a2", "to": "a1", "label": "還看不懂", "role": "return", "variant": "dashed" },
+    { "from": "b2", "to": "b1", "label": "沒過就改", "role": "return", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "為什麼一定要先 Python", "items": ["tracer 是量測儀器，不是產品，它永遠不會進 kernel", "改 Python 重跑只要幾秒；改 C 要 build + 重開機", "帶著一半的猜測去改 kernel，時間都花在等 build"] },
+    { "dot": "violet", "title": "「規格」長什麼樣", "items": ["DCP 送 call 20 之後，macOS 回了什麼值", "接著依序做了哪幾件事，link training 在第幾步才開始", "這份文字是別人能接手的唯一形式，也是 clean room 的標準做法"] },
+    { "dot": "amber", "title": "Bug 1 不用經過階段 A", "items": ["它的答案已經知道：切 mode 前先 park PIPE handler（PR #622）", "所以 Bug 1 從頭到尾都是階段 B：cherry-pick、build、測", "先在答案已知的題目上把 C 的迴圈練熟，再去啃 Bug 2"] }
+  ]
+}
