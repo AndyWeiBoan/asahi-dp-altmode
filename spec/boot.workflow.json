@@ -1,0 +1,246 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "開機鏈：從按下電源到桌面，每一棒在做什麼",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "external": {
+          "label": "Apple 的／被觀測的"
+        },
+        "security": {
+          "label": "m1n1（關鍵分歧點）"
+        },
+        "backend": {
+          "label": "開機載入與核心"
+        },
+        "frontend": {
+          "label": "你看到的畫面"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "normal",
+        "label": "平常開機",
+        "focus": [
+          "iboot",
+          "m1n1",
+          "uboot",
+          "grub",
+          "kern",
+          "desk"
+        ],
+        "note": "你每次開機都跑這條，m1n1 已經在裡面了。"
+      },
+      {
+        "id": "pick",
+        "label": "選 kernel 的地方",
+        "focus": [
+          "grub",
+          "kern"
+        ],
+        "note": "GRUB 讀 /boot/loader/entries/ 的清單，fairydust 會是其中一項。"
+      },
+      {
+        "id": "hv",
+        "label": "m1n1 的另一種用法",
+        "focus": [
+          "m1n1",
+          "hv",
+          "guest"
+        ],
+        "note": "同一支程式換個模式跑，不是裝新東西。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "boot",
+      "label": "平常開機（你現在就是這樣）"
+    },
+    {
+      "id": "alt",
+      "label": "之後：m1n1 的另一種用法"
+    }
+  ],
+  "phases": [
+    {
+      "id": "fw",
+      "label": "韌體階段",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "ldr",
+      "label": "載入器階段",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "os",
+      "label": "作業系統",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "iboot",
+    "m1n1",
+    "uboot",
+    "grub",
+    "kern",
+    "desk"
+  ],
+  "nodes": [
+    {
+      "id": "iboot",
+      "lane": "boot",
+      "col": 0,
+      "type": "external",
+      "label": "iBoot",
+      "sublabel": "Apple 的，不可改",
+      "width": 132,
+      "tag": "驗證簽章"
+    },
+    {
+      "id": "m1n1",
+      "lane": "boot",
+      "col": 1,
+      "type": "security",
+      "label": "m1n1",
+      "sublabel": "初始化硬體、給 DT",
+      "width": 132,
+      "tag": "已經在跑了"
+    },
+    {
+      "id": "uboot",
+      "lane": "boot",
+      "col": 2,
+      "type": "backend",
+      "label": "U-Boot",
+      "sublabel": "提供標準開機介面",
+      "width": 132
+    },
+    {
+      "id": "grub",
+      "lane": "boot",
+      "col": 3,
+      "type": "backend",
+      "label": "GRUB",
+      "sublabel": "讀清單、顯示選單",
+      "width": 132,
+      "tag": "在這裡選 kernel"
+    },
+    {
+      "id": "kern",
+      "lane": "boot",
+      "col": 4,
+      "type": "backend",
+      "label": "Linux kernel",
+      "sublabel": "掛 rootfs、載入模組",
+      "width": 132
+    },
+    {
+      "id": "desk",
+      "lane": "boot",
+      "col": 5,
+      "type": "frontend",
+      "label": "Hyprland",
+      "sublabel": "你看到的桌面",
+      "width": 132
+    },
+    {
+      "id": "hv",
+      "lane": "alt",
+      "col": 2,
+      "type": "security",
+      "label": "m1n1 @ EL2",
+      "sublabel": "改跑 hypervisor 模式",
+      "width": 132
+    },
+    {
+      "id": "guest",
+      "lane": "alt",
+      "col": 3,
+      "type": "external",
+      "label": "macOS guest",
+      "sublabel": "被觀測的對象",
+      "width": 132
+    }
+  ],
+  "edges": [
+    {
+      "from": "iboot",
+      "to": "m1n1",
+      "label": "交棒"
+    },
+    {
+      "from": "m1n1",
+      "to": "uboot"
+    },
+    {
+      "from": "uboot",
+      "to": "grub"
+    },
+    {
+      "from": "grub",
+      "to": "kern",
+      "label": "載入選中那顆",
+      "variant": "emphasis"
+    },
+    {
+      "from": "kern",
+      "to": "desk",
+      "label": "啟動桌面"
+    },
+    {
+      "from": "m1n1",
+      "to": "hv",
+      "label": "換個模式跑",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "from": "hv",
+      "to": "guest",
+      "label": "當 guest 開起來"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "每一棒在做什麼",
+      "items": [
+        "iBoot：Apple 的韌體，驗證簽章後交棒，你碰不到",
+        "m1n1：初始化硬體、產生 device tree —— Asahi 安裝時就放進 stub 了",
+        "U-Boot：把 Apple 的特殊環境轉成標準 Linux 開機介面",
+        "GRUB：讀開機項目清單、顯示選單、載入你選的那顆 kernel"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "檔案與清單在哪",
+      "items": [
+        "kernel 本體：/boot/vmlinuz-<版本>，每顆都有版本後綴所以能並存",
+        "device tree：/boot/dtb-<版本>/　模組：/lib/modules/<版本>/",
+        "開機項目清單：/boot/loader/entries/，一顆 kernel 一個 .conf",
+        "看人話版：sudo grubby --info=ALL"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "這個專案為什麼要懂它",
+      "items": [
+        "你會多裝一顆 fairydust kernel，兩顆並存、開機時選",
+        "所以動手前要先讓 GRUB 選單顯示，否則新 kernel 開不起來時沒地方退回",
+        "m1n1 不是要新裝的東西 —— 它現在就在你的開機鏈裡，只是換個模式跑",
+        "hypervisor 用的是你自己 build 的另一份，跟 stub 那份互不干擾"
+      ]
+    }
+  ]
+}

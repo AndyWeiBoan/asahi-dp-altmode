@@ -13,11 +13,12 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 
 | 檔案 | 內容 |
 |---|---|
-| `html/index.html` | 計畫書本體（9 節：大方向、遠中近目標、完整步驟、材料清單⋯⋯） |
+| `html/index.html` | 計畫書本體（10 節：大方向、遠中近目標、完整步驟、材料清單⋯⋯） |
 | `html/01-stack.html` | 圖 1 · 技術堆疊 —— 訊號經過哪些層，兩個 bug 卡在哪 |
 | `html/02-ladder.html` | 圖 2 · 學習階梯 —— 六個階段與近／中／遠程目標 |
 | `html/03-m1n1.html` | 圖 3 · 角色分配 —— 哪台是 target、哪台是 host |
 | `html/04-phases.html` | 圖 4 · 兩個階段 —— Python 找答案，C 寫進 kernel |
+| `html/05-boot.html` | 圖 5 · 開機鏈 —— iBoot → m1n1 → U-Boot → GRUB → Linux |
 | `spec/*.json` | 四張圖的原始碼（archify 規格），要改圖改這裡 |
 
 圖支援深／淺色、縮放、搜尋與引導視角，建議全螢幕開啟。

@@ -155,18 +155,20 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
   <li><a href="02-ladder.html">圖 2 · 學習階梯<small>六個階段與遠中近目標</small></a></li>
   <li><a href="03-m1n1.html">圖 3 · 角色分配<small>哪台 target、哪台 host</small></a></li>
   <li><a href="04-phases.html">圖 4 · 兩個階段<small>Python 找答案，C 寫進 kernel</small></a></li>
+  <li><a href="05-boot.html">圖 5 · 開機鏈<small>iBoot → m1n1 → U-Boot → GRUB</small></a></li>
 </ul>
 <h4>本頁章節</h4>
 <ul id="toclist">
   <li><a href="#s1">§1　大方向</a></li>
   <li><a href="#s2">§2　遠中近目標</a></li>
   <li><a href="#s3">§3　完整步驟</a></li>
-  <li><a href="#s4">§4　兩個階段（Python / C）</a></li>
-  <li><a href="#s5">§5　角色、機器與版本</a></li>
-  <li><a href="#s6">§6　規矩</a></li>
-  <li><a href="#s7">§7　材料清單</a></li>
-  <li><a href="#s8">§8　現在就能做的事</a></li>
-  <li><a href="#s9">§9　連結索引</a></li>
+  <li><a href="#s4">§4　開機鏈（每個角色）</a></li>
+  <li><a href="#s5">§5　兩個階段（Python / C）</a></li>
+  <li><a href="#s6">§6　角色、機器與版本</a></li>
+  <li><a href="#s7">§7　規矩</a></li>
+  <li><a href="#s8">§8　材料清單</a></li>
+  <li><a href="#s9">§9　現在就能做的事</a></li>
+  <li><a href="#s10">§10　連結索引</a></li>
 </ul>
 </details>
 </nav>
@@ -200,6 +202,10 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
   <a class="fig" href="04-phases.html">
     <b>圖 4 · 兩個階段</b>
     <span>Python 快迴圈找答案、寫下規格、再用 C 寫進 kernel 的慢迴圈。</span>
+  </a>
+  <a class="fig" href="05-boot.html">
+    <b>圖 5 · 開機鏈</b>
+    <span>iBoot → m1n1 → U-Boot → GRUB → Linux，每一棒在做什麼、kernel 從哪裡選。</span>
   </a>
 </div>
 
@@ -240,7 +246,7 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
     <ul>
       <li>build 出一顆能開機的 fairydust kernel，舊 kernel 留著隨時退回</li>
       <li>m1n1 proxy 模式接通，能從 Python 戳暫存器</li>
-      <li>在 #601 / #579 留言自我介紹（見 §8）</li>
+      <li>在 #601 / #579 留言自我介紹（見 §9）</li>
       <li>讀完 Asahi 的 RE 政策原文</li>
     </ul>
     <p class="muted" style="margin-bottom:0">
@@ -268,7 +274,7 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
     <ul>
       <li>Bug 1：讓 M1 Pro 的 Type-C port 真的切進 DP 模式</li>
       <li>Bug 2：從 macOS trace 反推 call 20 的正確回應序列</li>
-      <li>成果送 PR（前提見 §6）</li>
+      <li>成果送 PR（前提見 §7）</li>
     </ul>
     <p class="muted" style="margin-bottom:0">
       <strong>驗收：</strong>螢幕會亮。但真正的收穫是你不再怕任何一顆沒有文件的晶片。
@@ -365,7 +371,7 @@ p.write32(addr, val)</code></pre>
   <h3>階段 2 · 先 trace 簡單的裝置</h3>
   <p class="muted">環境：m1n1 hypervisor ｜ 產出：讀得懂 tracer 輸出</p>
   <p>
-    架起 hypervisor（做法見 <a href="03-m1n1.html">圖 3</a> 與 §5），但<strong>第一次別碰 DCP</strong>。
+    架起 hypervisor（做法見 <a href="03-m1n1.html">圖 3</a> 與 §6），但<strong>第一次別碰 DCP</strong>。
     先找一個簡單的裝置錄一份 trace，把「這串輸出在講什麼」搞清楚。
   </p>
 </div>
@@ -409,7 +415,82 @@ p.write32(addr, val)</code></pre>
   </p>
 </div>
 
-<h2 id="s4"><span class="n">§4</span>兩個階段：Python 找答案，C 寫進 kernel</h2>
+<h2 id="s4"><span class="n">§4</span>開機鏈：每個角色在做什麼</h2>
+
+<p>
+  這一節是階段 0 的前置知識。你要多裝一顆 kernel、要能在兩顆之間切換、
+  之後還要讓 m1n1 換個模式跑 —— 這些都建立在「開機時到底發生什麼」之上。
+</p>
+
+<div class="embed">
+  <div class="bar"><b>圖 5 · 開機鏈</b><a href="05-boot.html" target="_blank">在新分頁開啟，可全螢幕操作 ↗</a></div>
+  <iframe src="05-boot.html" loading="lazy" title="圖 5 · 開機鏈"></iframe>
+  <p class="muted" style="font-size:13.5px">上排是平常開機的五棒，下排是 m1n1 的另一種用法 —— 分歧點就在第二棒。</p>
+</div>
+
+<h3>五棒接力</h3>
+
+<table>
+<thead><tr><th>角色</th><th>做什麼</th></tr></thead>
+<tbody>
+<tr><td><strong>iBoot</strong></td><td>Apple 的韌體。驗證簽章後交棒，你完全碰不到</td></tr>
+<tr><td><strong>m1n1</strong></td><td>初始化硬體、產生 device tree。<strong>Asahi 安裝時就放進 stub 分割區了</strong></td></tr>
+<tr><td><strong>U-Boot</strong></td><td>把 Apple 的特殊開機環境轉成標準的 Linux 開機介面</td></tr>
+<tr><td><strong>GRUB</strong></td><td>讀開機項目清單、顯示選單、把你選的那顆 kernel 載進記憶體</td></tr>
+<tr><td><strong>Linux kernel</strong></td><td>掛載 rootfs、載入模組，最後交給 systemd → Hyprland</td></tr>
+</tbody>
+</table>
+
+<h3>kernel 是一組帶版本後綴的檔案</h3>
+
+<p>所以多顆可以並存 —— 裝新的不會蓋掉舊的：</p>
+
+<pre><code>/boot/vmlinuz-&lt;版本&gt;              # kernel 本體
+/boot/initramfs-&lt;版本&gt;.img        # 開機用的暫時根目錄
+/boot/dtb-&lt;版本&gt;/                 # device tree（Asahi 必要，別忘了裝）
+/lib/modules/&lt;版本&gt;/              # 驅動模組</code></pre>
+
+<h3>那份「有哪些 kernel 可以選」的清單</h3>
+
+<p>Fedora 用 BLS（Boot Loader Specification）：一顆 kernel 一個設定檔。</p>
+
+<pre><code>ls /boot/loader/entries/     # 每個 .conf 就是選單上的一項
+sudo grubby --info=ALL       # 人話版：列出每一項的 kernel / initrd / 參數</code></pre>
+
+<p class="muted">
+  裝完 fairydust 之後這裡會多一項 —— 那是「有沒有裝成功」最直接的驗證，比重開機試快得多。
+</p>
+
+<div class="callout">
+  <strong>動手 build 之前，先讓 GRUB 選單顯示出來。</strong>
+  Asahi 預設會跳過選單（為了開機快）。編輯 <code>/etc/default/grub</code> 把
+  <code>GRUB_TIMEOUT</code> 設成 5，然後
+  <code>sudo grub2-mkconfig -o /boot/grub2/grub.cfg</code>。<br><br>
+  不先做這件事，新 kernel 開不起來時你會找不到地方選回舊的。
+</div>
+
+<h3>m1n1 不是要新裝的東西</h3>
+
+<p>
+  它<strong>現在就在你的開機鏈裡</strong>，每次開機都在跑 —— 沒有它 Asahi 根本開不起來。
+  之後要做的不是安裝新程式，而是讓同一支程式換個模式：
+</p>
+
+<table>
+<thead><tr><th>模式</th><th>做什麼</th></tr></thead>
+<tbody>
+<tr><td><strong>平常</strong>（你現在）</td><td>初始化硬體 → 交棒給 U-Boot → 一路到 Linux</td></tr>
+<tr><td><strong>hypervisor</strong>（之後）</td><td>進 EL2、攔截 MMIO、把 macOS 當 guest 開起來</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  實務上會有<strong>兩份 m1n1 並存</strong>：stub 裡那份繼續負責開你的 Asahi；
+  hypervisor 用的是你自己 build 的新版（官方文件強調「每次都先 chainload working tree 的 m1n1」）。
+  兩份互不干擾，正常開機流程不受影響。
+</p>
+
+<h2 id="s5"><span class="n">§5</span>兩個階段：Python 找答案，C 寫進 kernel</h2>
 
 <p>
   整個專案用兩種語言，節奏差了三個數量級。搞混這件事會浪費非常多時間。
@@ -467,7 +548,7 @@ p.write32(addr, val)</code></pre>
   先在一個答案已知的題目上把「改 C → build → 測」練熟，之後 Bug 2 才有餘力專心在階段 A 的難處上。
 </div>
 
-<h2 id="s5"><span class="n">§5</span>角色、機器與版本</h2>
+<h2 id="s6"><span class="n">§6</span>角色、機器與版本</h2>
 
 <div class="embed">
   <div class="bar"><b>圖 3 · 角色分配</b><a href="03-m1n1.html" target="_blank">在新分頁開啟，可全螢幕操作 ↗</a></div>
@@ -519,7 +600,7 @@ MacBook Pro（host） ← 用內建螢幕看 trace</code></pre>
 </p>
 <p>
   這表示你之後要加解碼邏輯是<strong>在 host 上寫 Python</strong>，不是在 target 上改 C ——
-  也就是 §4 說的那個快迴圈。
+  也就是 §5 說的那個快迴圈。
 </p>
 
 <h3>怎麼分辨是 kernel 的問題還是 Hyprland 的問題</h3>
@@ -651,7 +732,7 @@ python3 proxyclient/tools/run_guest.py \
   真的接起來一次就知道。這也是值得順手在 issue 裡問一句的事。）</span>
 </div>
 
-<h2 id="s6"><span class="n">§6</span>規矩（決定你的成果能不能上游）</h2>
+<h2 id="s7"><span class="n">§7</span>規矩（決定你的成果能不能上游）</h2>
 
 <p>
   Asahi 有三份政策要遵守：Code of Conduct、<strong>Copyright and Reverse Engineering Policy</strong>、
@@ -685,7 +766,7 @@ python3 proxyclient/tools/run_guest.py \
   只想修好自己的螢幕、不打算上游，這個限制完全不存在。</span>
 </div>
 
-<h2 id="s7"><span class="n">§7</span>材料清單</h2>
+<h2 id="s8"><span class="n">§8</span>材料清單</h2>
 
 <h3>硬體</h3>
 <ul class="chk">
@@ -720,7 +801,7 @@ python3 proxyclient/tools/run_guest.py \
 <ul class="chk">
   <li class="have">Fedora Asahi Remix（已裝）</li>
   <li><strong>macOS 14.8.3</strong>（備案 13.5），裝在 target 機器上一個<strong>完整的獨立 volume group</strong>。
-      不要用你現在的 macOS 安裝。你的兩台機器出廠版本都夠舊，macOS 26 不會擋住這件事（見 §5）</li>
+      不要用你現在的 macOS 安裝。你的兩台機器出廠版本都夠舊，macOS 26 不會擋住這件事（見 §6）</li>
   <li>m1n1 repo + python proxyclient 相依套件（裝在 Mac mini 上）</li>
   <li><code>img4tool</code> —— 解 kernelcache</li>
   <li>GitHub 帳號 —— 留言、送 PR</li>
@@ -748,7 +829,7 @@ python3 proxyclient/tools/run_guest.py \
   用翻譯工具處理<em>你自己要講的話</em>跟查字典一樣，不涉及 trace 解讀，碰不到政策那條線。
 </p>
 
-<h2 id="s8"><span class="n">§8</span>現在就能做的事</h2>
+<h2 id="s9"><span class="n">§9</span>現在就能做的事</h2>
 
 <div class="card">
 <ol>
@@ -756,7 +837,7 @@ python3 proxyclient/tools/run_guest.py \
     <strong>到 <a href="https://github.com/AsahiLinux/linux/issues/601">#601</a> 和
     <a href="https://github.com/AsahiLinux/linux/issues/579">#579</a> 留言</strong>：
     說你有 14" M1 Pro（t600x）+ Studio Display，願意錄 trace、測 patch。
-    順便問 fairydust 的 dts 把哪個 port 指定給 DP，好安排接線（見 §5 的說明）。
+    順便問 fairydust 的 dts 把哪個 port 指定給 DP，好安排接線（見 §6 的說明）。
     <span class="muted">這個組合目前沒有第二個人有，開口就會有人理你。</span>
   </li>
   <li><strong>去 omadora 的「External monitor discussion」看一圈、留個言</strong>。
@@ -776,7 +857,7 @@ python3 proxyclient/tools/run_guest.py \
 </p>
 </div>
 
-<h2 id="s9"><span class="n">§9</span>連結索引</h2>
+<h2 id="s10"><span class="n">§10</span>連結索引</h2>
 
 <h3>你的兩個 bug</h3>
 <ul>
