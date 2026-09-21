@@ -19,6 +19,7 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 | `html/03-m1n1.html` | 圖 3 · 角色分配 —— 哪台是 target、哪台是 host |
 | `html/04-phases.html` | 圖 4 · 兩個階段 —— Python 找答案，C 寫進 kernel |
 | `html/05-boot.html` | 圖 5 · 開機鏈 —— iBoot → m1n1 → U-Boot → GRUB → Linux |
+| `html/06-sides.html` | 圖 6 · Mac vs 螢幕 —— 兩邊各有一顆 Apple 處理器，各自管什麼 |
 | `spec/*.json` | 四張圖的原始碼（archify 規格），要改圖改這裡 |
 
 圖支援深／淺色、縮放、搜尋與引導視角，建議全螢幕開啟。

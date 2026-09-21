@@ -156,6 +156,7 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
   <li><a href="03-m1n1.html">圖 3 · 角色分配<small>哪台 target、哪台 host</small></a></li>
   <li><a href="04-phases.html">圖 4 · 兩個階段<small>Python 找答案，C 寫進 kernel</small></a></li>
   <li><a href="05-boot.html">圖 5 · 開機鏈<small>iBoot → m1n1 → U-Boot → GRUB</small></a></li>
+  <li><a href="06-sides.html">圖 6 · Mac vs 螢幕<small>哪些東西在哪一邊</small></a></li>
 </ul>
 <h4>本頁章節</h4>
 <ul id="toclist">
@@ -207,6 +208,10 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
     <b>圖 5 · 開機鏈</b>
     <span>iBoot → m1n1 → U-Boot → GRUB → Linux，每一棒在做什麼、kernel 從哪裡選。</span>
   </a>
+  <a class="fig" href="06-sides.html">
+    <b>圖 6 · Mac vs 螢幕</b>
+    <span>兩邊各有一顆 Apple 處理器：DCP 在 Mac 裡、A13 在螢幕裡，各自管什麼。</span>
+  </a>
 </div>
 
 <div class="embed">
@@ -215,6 +220,33 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
   <p class="muted" style="font-size:13.5px">圖裡可以切深／淺色、縮放；左上角「Guided Views」有四個視角（訊號主路徑、Bug 1、Bug 2、你能改的範圍），點了會把不相關的部分淡掉。</p>
 </div>
 
+
+<h3>先分清楚：哪些東西在 Mac 裡，哪些在 Studio Display 裡</h3>
+
+<p>
+  這件事最容易搞混，因為<strong>兩邊各有一顆 Apple 處理器</strong>：
+</p>
+<ul>
+  <li><strong>DCP</strong>（顯示協處理器）在 <strong>Mac 裡</strong> —— 負責產生畫面、跟螢幕交握</li>
+  <li><strong>A13 Bionic</strong> 在 <strong>Studio Display 裡</strong> ——
+      那是一整顆 iPhone 等級的 SoC，跑 Apple 自家韌體，管面板、USB hub、攝影機、喇叭</li>
+</ul>
+<p>
+  <strong>Bug 2 就是這兩顆之間的問題</strong>：Mac 的 DCP 回報「對面那顆還在睡」（<code>INACTIVE_SINK_DETECTED</code>），
+  而 Linux driver 不知道該怎麼回應。所以要「叫醒」的是<strong>螢幕裡</strong>那顆，不是 Mac 裡那顆。
+</p>
+
+<div class="embed">
+  <div class="bar"><b>圖 6 · Mac 與 Studio Display 各有什麼</b><a href="06-sides.html" target="_blank">在新分頁開啟，可全螢幕操作 ↗</a></div>
+  <iframe src="06-sides.html" loading="lazy" title="圖 6 · Mac 與 Studio Display 各有什麼"></iframe>
+  <p class="muted" style="font-size:13.5px">左邊虛線框內全在 Mac 裡，右邊虛線框內全在螢幕裡，中間那條就是唯一的實體連線。</p>
+</div>
+
+<p>
+  順帶兩個容易忽略的事實：那條 USB-C 上<strong>同時跑影像、USB 資料和電力</strong>，
+  而且<strong>電力方向是反的</strong> —— Studio Display 供電給 Mac，最高 96W。
+  #601 的失敗點正是在「USB3 + DP 混合模式」的切換上，跟線上同時有 USB 資料這件事直接相關。
+</p>
 
 <h3>兩個 bug 的性質完全不同</h3>
 
