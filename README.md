@@ -36,7 +36,15 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 | 斷點 2 | DCP 交握（AP call 20），Studio Display 專屬 | [#579](https://github.com/AsahiLinux/linux/issues/579) | ⬜ **open，4 則討論** —— 在 t8112 與 t6001 上都重現過，問題在螢幕那一側 |
 
 **目前投入產出比最高的一件事**：Asahi 開發者 chadmed 在 #579 要求用「full-spec 非 Thunderbolt 的
-USB-C 線」重測，原回報者手上沒有那種線，至今沒人做。買一條線就能回答。
+USB-C 線」重測，原回報者手上沒有那種線，至今沒人做。買一條線就能回答 ——
+但測試本身要先有 fairydust kernel（stable kernel 上連 `DP-1` 都不會出現）。
+
+## 從哪裡開始
+
+階段 0（build fairydust）是唯一的入口，所有跟螢幕有關的測試都建立在它之上。
+Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https://github.com/bharambetejas/asahi-fairydust-display)
+的一鍵腳本（支援表把 MacBook Pro M1 Pro 標成 Tested by community，需 15GB 空間、60～90 分鐘）。
+細節見計畫書 §3 階段 0 與 §9。
 
 ## 重新產生圖
 

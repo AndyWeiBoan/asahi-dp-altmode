@@ -368,9 +368,16 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
     <li>確認 GRUB 選單會顯示（Asahi 預設會跳過），否則你沒地方選回舊 kernel</li>
   </ol>
   <div class="callout">
-    <strong>可能不用自己來。</strong>
+    <strong>可能不用自己來 —— 而且它的支援表上就有你的機型。</strong>
     <a href="https://github.com/bharambetejas/asahi-fairydust-display">bharambetejas/asahi-fairydust-display</a>
-    已經把整條流程自動化，而且就是針對 Fedora Asahi Remix。先讀它的 README。
+    是針對 <strong>Fedora Asahi Remix</strong> 的一鍵腳本，
+    支援表把 <strong>MacBook Pro M1 Pro 標成「Tested by community」</strong>。
+    它會處理相依套件、Rust、GPU driver、DP alt mode 模組、DTB、m1n1、GRUB、typec 模組自動載入，
+    還附一個 hotplug 腳本。<strong>需要 15GB 空間、60～90 分鐘</strong>。<br><br>
+    它的 README 也獨立寫了同一件事：<strong>「Plug adapter into the FRONT-MOST USB-C port」</strong>
+    —— 跟 dts 裡的 <code>USB-C Left Front</code> 對得上。<br><br>
+    <span class="muted">它預設會多打一個 patch（修內建 HDMI 在 suspend/resume 後不亮），
+    想要原汁原味的分支就 <code>SKIP_PATCHES=1</code>。</span>
   </div>
   <div class="callout">
     <strong>dts 不用 cherry-pick 了。</strong>fairydust 分支的
@@ -942,19 +949,28 @@ python3 proxyclient/tools/run_guest.py \
 <h2 id="s9"><span class="n">§9</span>現在就能做的事</h2>
 
 <div class="card">
+<div class="callout stop" style="margin-top:0">
+  <strong>所有跟螢幕有關的測試都要先有 fairydust。</strong>
+  stable kernel 上根本沒有 DP alt mode 這條路 —— 連 <code>DP-1</code> 這個 connector 都不會出現，
+  插什麼都不會有反應。<strong>所以階段 0 是唯一的入口，沒有捷徑。</strong>
+  下面第 1 項可以現在就做（等貨要時間），但它的<em>測試</em>要等第 2 項完成。
+</div>
 <ol>
   <li>
-    <strong>買一條 full-spec 非 Thunderbolt 的 USB-C 線，接 Studio Display 測一次，把結果貼進
-    <a href="https://github.com/AsahiLinux/linux/issues/579">#579</a></strong>。
-    這是 Asahi 開發者 chadmed 在 2026-08-29 親自要求的實驗，
-    <strong>到今天還沒有人做</strong>（原回報者手上沒有那種線）。
-    <span class="muted">成本一條線。不用 build kernel、不用 m1n1、不用裝第二份 macOS。
-    這是目前整個 issue 上投入產出比最高的一件事。</span>
+    <strong>先下單一條 full-spec 非 Thunderbolt 的 USB-C 線</strong>（不要 TB 線、不要充電線）。
+    <span class="muted">Asahi 開發者 chadmed 在 2026-08-29 於 #579 要求這個測試，
+    原回報者手上沒有那種線，<strong>到今天還沒有人做</strong>。
+    線在路上的時候剛好可以 build kernel。</span>
   </li>
   <li><strong>build fairydust，插一台普通 USB-C 螢幕</strong>，確認 #601 的結論在你的
     <code>MacBookPro18,3</code> 上也成立。記得插<strong>左前那一孔</strong>、<strong>開機前就插著</strong>。
     <span class="muted">會亮，斷點 1 對你就不存在了；不會亮，那才是真的有一個 t600x 專屬問題，
     而且你會是第一個有明確反例的人 —— 這時候才值得回 #601 補一則。</span></li>
+  <li><strong>用那條線接 Studio Display，把結果貼進
+    <a href="https://github.com/AsahiLinux/linux/issues/579">#579</a></strong>
+    —— 不管會不會亮都要貼，<code>dmesg | grep -iE 'dcp|atcphy|oob_hotplug'</code> 全貼，
+    連同 kernel 版本、fairydust commit、線材型號。
+    <span class="muted">這是目前整個 issue 上投入產出比最高的一件事。</span></li>
   <li><strong>去 omadora 的「External monitor discussion」看一圈、留個言</strong>。
     那裡的人跟你<strong>同樣的發行版、同樣的合成器、同樣的硬體家族</strong>，
     比 Asahi 主 repo 更可能已經有人踩過你要踩的坑
@@ -967,7 +983,7 @@ python3 proxyclient/tools/run_guest.py \
   <li><strong>host（MBP）上 clone m1n1</strong>，確認 proxyclient 跑得動、USB 線接得通</li>
 </ol>
 <p class="muted" style="margin-bottom:0">
-  第 1、2 步都不用寫程式碼，卻是整份計畫裡最快能換到情報的兩件事。
+  前三步都不用寫一行程式碼，卻是整份計畫裡最快能換到情報的部分。第 4 到 7 項可以跟 build 平行做。
   <strong>別再往 #601 貼自我介紹了 —— 它已經關了。</strong>要打招呼就在 #579。
 </p>
 </div>
