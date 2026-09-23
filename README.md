@@ -41,9 +41,19 @@ USB-C 線」重測，原回報者手上沒有那種線，至今沒人做。買�
 
 ## 從哪裡開始
 
-階段 0（build fairydust）是唯一的入口，所有跟螢幕有關的測試都建立在它之上。
+階段 0（build fairydust）是唯一的入口，所有跟螢幕有關的測試都建立在它之上 ——
+stable kernel 上連 `DP-1` 這個 connector 都不會出現。
+
 Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https://github.com/bharambetejas/asahi-fairydust-display)
 的一鍵腳本（支援表把 MacBook Pro M1 Pro 標成 Tested by community，需 15GB 空間、60～90 分鐘）。
+原始碼從上游 clone，`.config` 從你本機的 `/boot/config-$(uname -r)` 起手。
+
+> ⚠️ **裝完之後每次官方 kernel 更新都要檢查 `/boot/dtb`。**
+> Fedora 的 `10-devicetree.install` 只認 `/boot/dtb-*`，而 `make dtbs_install`
+> 裝到 `/boot/dtbs/<版本>`，所以每次 kernel update 都會把 symlink 搶回官方 DTB
+> 並重刷 m1n1 —— fairydust kernel 會帶著官方 DTB 開機，外接螢幕安靜地不再亮。
+> 修法：`sudo ln -sfn /boot/dtbs/<fairydust版本> /boot/dtb && sudo update-m1n1`。
+
 細節見計畫書 §3 階段 0 與 §9。
 
 ## 重新產生圖

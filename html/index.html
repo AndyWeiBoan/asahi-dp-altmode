@@ -380,6 +380,23 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
     想要原汁原味的分支就 <code>SKIP_PATCHES=1</code>。</span>
   </div>
   <div class="callout">
+    <strong>讀過腳本之後的三件事。</strong>
+    <ul style="margin-bottom:0">
+      <li><strong>材料只有 <code>.config</code> 來自本機。</strong>原始碼是
+        <code>git clone AsahiLinux/linux --branch fairydust --filter=blob:none</code>（約 3GB）；
+        <code>.config</code> 則是 <code>cp /boot/config-$(uname -r)</code> ——
+        所以 16K page 那個坑它自動幫你避開了</li>
+      <li><strong>README 的第 9 步不會跑。</strong><code>main()</code> 裡
+        <code>setup_display_script</code> 是註解掉的，註解寫「causes login loop on KDE/Wayland」。
+        對 Hyprland 使用者是好消息 —— 那段會寫一個用 <code>xrandr</code>、
+        還硬寫死 <code>2560x1600</code> 的腳本（14" 是 3024x1964），
+        外加 XDG autostart 和一條 <code>RUN+=</code> 跑 <code>sleep 2</code> 的 udev rule。全部不會發生</li>
+      <li><strong>它改 GRUB 的那行對你是空轉。</strong>它用
+        <code>sed 's/GRUB_TIMEOUT_STYLE=.*/…/'</code>，只改既有的行；
+        <code>/etc/default/grub</code> 裡沒有這一行的話什麼都不會發生，要自己加</li>
+    </ul>
+  </div>
+  <div class="callout">
     <strong>dts 不用 cherry-pick 了。</strong>fairydust 分支的
     <code>arch/arm64/boot/dts/apple/t600x-j314-j316.dtsi</code> 第 12 行就是
     <code>#define ENABLE_DCPEXT_TYPEC</code>，無條件打開；往下
@@ -402,15 +419,45 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
       <li><strong>冷插比熱插可靠</strong> —— 開機前就把螢幕插著</li>
     </ul>
   </div>
+  <div class="callout stop">
+    <strong>每次官方 kernel 更新，都會把 <code>/boot/dtb</code> 搶回去 —— 這是最容易中招的一點。</strong><br><br>
+    Fedora 的 <code>/usr/lib/kernel/install.d/10-devicetree.install</code> 在每次 kernel
+    <code>add</code> 時會無條件做這件事：
+    <pre style="margin:10px 0"><code>rm -f /boot/dtb
+ln -s dtb-$KERNEL_VERSION /boot/dtb</code></pre>
+    它掃的是 <strong><code>/boot/dtb-*</code></strong>（連字號），
+    而 <code>make dtbs_install</code> 把 fairydust 的 DTB 裝到
+    <strong><code>/boot/dtbs/&lt;版本&gt;</code></strong>（複數、斜線）——
+    <strong>兩者對不上，所以 fairydust 的 DTB 對那支 hook 是隱形的</strong>。
+    緊接著 <code>15-update-m1n1.install</code> 會跑 <code>update-m1n1</code> 把官方 DTB 刷進去。<br><br>
+    結果：<code>omarchy update</code> 帶進一顆新官方 kernel 之後，
+    你的 fairydust kernel 會<strong>帶著官方 DTB 開機</strong> ——
+    <code>ENABLE_DCPEXT_TYPEC</code> 那些節點不見了，外接螢幕安靜地不再亮。
+    症狀是「明明沒動什麼，某天就壞了」。<br><br>
+    <strong>檢查與修復：</strong>
+    <pre style="margin:10px 0"><code>readlink /boot/dtb          # 指到 dtb-…asahi… 就是被搶走了
+sudo ln -sfn /boot/dtbs/&lt;fairydust 版本&gt; /boot/dtb
+sudo update-m1n1</code></pre>
+    值得做成 omarchy 的 post-update hook，跟你其他那幾個放在一起。
+  </div>
   <div class="callout">
-    <strong>你的 MBP 跑 omadora（Fedora Asahi Remix + Hyprland），這裡要先設防。</strong>
-    <code>omarchy update</code> 會跑 <code>dnf upgrade --refresh</code> 加上自己的 git migration，所以：
+    <strong>另外兩件關於 omadora 的事。</strong>
     <ul style="margin-bottom:0">
-      <li>Fedora 預設只留 3 顆 kernel（<code>installonly_limit</code>），
-          <strong>你 build 的 fairydust 可能被官方 kernel 擠掉</strong> ——
-          先用 <code>dnf versionlock</code> 或調高 <code>installonly_limit</code></li>
-      <li>它<strong>不會</strong>幫你重 build fairydust，上游有新 commit 要自己重跑</li>
+      <li><strong><code>installonly_limit</code> 管不到它。</strong>
+        那個限制只作用在 RPM 標記為 installonly 的套件；腳本走的是 <code>make install</code>，
+        裝出來的不是 RPM，dnf 不會把它擠掉。
+        <span class="muted">（會被擠掉的是最舊那顆<em>官方</em> kernel。）</span></li>
+      <li><code>omarchy update</code> <strong>不會</strong>幫你重 build fairydust，上游有新 commit 要自己重跑</li>
     </ul>
+  </div>
+  <div class="callout">
+    <strong>它動到的全域設定只有一個，而且退回 stable 也吃得到。</strong>
+    就是上面那個 <code>/boot/dtb</code> + <code>update-m1n1</code> ——
+    m1n1 之後每次開機都帶著 fairydust 的 device tree，<strong>包括你在 GRUB 選回官方 kernel 那次</strong>。
+    其餘（模組、DTB、vmlinuz、initramfs）都帶 <code>-fairydust</code> 後綴並存，不覆蓋任何東西。<br><br>
+    repo 裡的 <code>asahi-fairydust-uninstall.sh</code> 會把這些全部還原，
+    包含把 <code>/boot/dtb</code> 指回官方版本再跑一次 <code>update-m1n1</code>。
+    <span class="muted">它會擋你在 fairydust kernel 裡執行，要先重開機回官方 kernel。</span>
   </div>
 </div>
 
