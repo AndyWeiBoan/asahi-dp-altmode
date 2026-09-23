@@ -75,6 +75,8 @@ h2{font-family:var(--serif); font-weight:600; font-size:clamp(21px,2.7vw,27px);
 h2:first-child{margin-top:0}
 h2 .n{color:var(--accent); font-family:inherit; margin-right:12px; font-variant-numeric:tabular-nums}
 h3{font-size:17px; margin:32px 0 6px; font-weight:650}
+h4{font-size:14px; margin:26px 0 4px; font-weight:700; color:var(--muted);
+  letter-spacing:.06em; text-transform:none}
 p{margin:13px 0; color:var(--ink2)}
 a{color:var(--accent); text-underline-offset:2px}
 strong{color:var(--ink)}
@@ -172,6 +174,7 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
   <li><a href="#s9">§9　現在就能做的事</a></li>
   <li><a href="#s10">§10　名詞表</a></li>
   <li><a href="#s11">§11　連結索引</a></li>
+  <li><a href="#s12">§12　日誌</a></li>
 </ul>
 </details>
 </nav>
@@ -1425,6 +1428,90 @@ python3 proxyclient/tools/run_guest.py \
   <li><a href="https://asahilinux.org/llm-policy/">Generative AI Policy</a></li>
   <li><a href="https://discussion.fedoraproject.org/t/switch-to-the-kernel-16k-variant/87711">kernel-16k 討論</a></li>
 </ul>
+
+
+<h2 id="s12"><span class="n">§12</span>日誌</h2>
+
+<p class="muted">
+  每次動手之後記一筆：做了什麼、發現什麼、下次從哪裡接。最新的在最上面。
+</p>
+
+<div class="stage key">
+<h3>2026-09-23 晚 ～ 09-24 凌晨 · 第一次動手</h3>
+<p class="muted">從「這份計畫書該怎麼修」開始，結果一路做到外接螢幕點亮。</p>
+
+<h4>做了什麼</h4>
+<ol>
+  <li><strong>查證計畫書的前提</strong>，發現 #601 已在 2026-09-07 結案 —— 原本「兩個 bug、先解 Bug 1」的框架不成立了。
+    §1／§2／§3／§9／§11 全部依此改寫，六張圖用 archify 重新產生</li>
+  <li><strong>讀完 build 腳本</strong>（600 行）。確認 kernel 原始碼是執行時從上游 clone、
+    <code>.config</code> 抄本機的、README 講的第 9 步在 <code>main()</code> 裡是註解掉的</li>
+  <li><strong>跑 build。</strong>第一次 <code>--filter=blob:none</code> 的 clone 空等三分鐘零 bytes（GitHub 在算 pack），
+    改用 <code>--depth 1</code> 才動。編譯本身 60～90 分鐘</li>
+  <li><strong>開機設定</strong>：<code>asahi-bless --set-boot fedora</code>（預設不再開進 macOS）、
+    <code>grubby --set-default</code> 指到 fairydust、把 GRUB 選單叫回來</li>
+  <li><strong>第一次插螢幕沒反應</strong> —— 插到左<em>後</em>那孔了。查 device tree 的 connector label
+    才確認 DP 只在 <code>usb-pd@3f</code> = <strong>USB-C Left Front</strong></li>
+  <li><strong>換孔，亮了。</strong>MSI MAG161V，1920x1080@60，Hyprland 正常接手</li>
+  <li><strong>測熱插拔 → 不亮，而且整台卡住幾十秒</strong></li>
+  <li>診斷後找到 <a href="https://github.com/AsahiLinux/linux/pull/622">#622</a>，確認能乾淨套用到現在的 tree</li>
+  <li><strong>白做了一輪</strong>：中途跑過 <code>git apply -R</code> 把 patch 退掉卻沒發現，
+    裝上去的是沒 patch 的模組，測出來當然跟原本一樣</li>
+  <li>重套、<strong>驗證 <code>.ko</code> 裡真的有 patch 的字串</strong>、重裝、重測</li>
+  <li>結果：<strong>不卡了，但畫面還是回不來</strong>。追到 <code>hyprland.log</code> 才看清楚原因</li>
+</ol>
+
+<h4>發現了什麼</h4>
+<ul>
+  <li><strong>斷點 1 對這台機器不存在。</strong>換到 fairydust 就有 USB-C DP 輸出，不用改任何程式碼</li>
+  <li><strong>DP 只有一個孔</strong>（左前），插錯孔完全沒有反應，而且不會有任何錯誤訊息</li>
+  <li><strong>#622 在 t600x 上有效但沒解完</strong>：WARNING 和 <code>flip_done timed out</code> 都消失、
+    不再卡住整台電腦，但熱插拔的畫面仍然回不來。量化數字見 <a href="#s3b">§3.5</a></li>
+  <li><strong>真正的卡點在合成器</strong>：一張永遠等不到完成的 page flip，讓 aquamarine 之後拒絕所有 commit
+    （<code>Cannot commit when a page-flip is awaiting</code>，出現 14 次）。
+    Hyprland 不是沒反應 —— 它有偵測到、有列模式、有嘗試 modeset</li>
+  <li><strong>單獨跑 <code>make install</code> 會把 <code>/boot/dtb</code> 指歪</strong>，這次真的發生了。
+    只改模組的話根本不需要它</li>
+  <li><strong>驗證要驗二進位檔</strong>。<code>git diff</code> 和時間戳都可能騙人，
+    要 <code>strings *.ko | grep</code> 確認編出來的東西裡有</li>
+</ul>
+
+<h4>現在的狀態</h4>
+<table>
+<thead><tr><th>項目</th><th></th></tr></thead>
+<tbody>
+<tr><td>kernel</td><td><code>7.1.13-fairydust+</code>（含 patch 0001 + #622），官方 kernel 留在 GRUB 當退路</td></tr>
+<tr><td>冷插外接螢幕</td><td>✅ 開機前插左前孔就有畫面</td></tr>
+<tr><td>熱插拔</td><td>❌ 畫面回不來；至少不再卡住整台電腦</td></tr>
+<tr><td>Studio Display</td><td>還沒測過，目前全部是用 MSI MAG161V 做的</td></tr>
+<tr><td>迭代迴圈</td><td>✅ 改 C → <strong>38 秒</strong>增量編譯 → 裝模組 → 重開機測</td></tr>
+</tbody>
+</table>
+
+<h4>沒做到 / 做得不好的地方</h4>
+<ul>
+  <li>整晚幾乎都是「跑腳本、套別人的 patch、看結論」，<strong>沒有寫過一行 C，也沒碰過任何暫存器</strong>。
+    這不是計畫的問題 —— 階段 0 本來就不是學習關卡 —— 但要記得它不算數</li>
+  <li>#622 兩塊改動的<strong>原理當下沒搞懂</strong>，是事後才補進 §3.5 的</li>
+  <li><code>git apply -R</code> 那一輪白測，浪費約 20 分鐘</li>
+</ul>
+
+<h4>明天要幹嘛</h4>
+<ol>
+  <li><strong>先一起寫一份學習計畫</strong>（不是由 Claude 單方面寫完丟過來）</li>
+  <li><strong>把兩個 patch 逐行看懂</strong> —— 0001（內建 HDMI resume，11 行，暖身用）和 #622（兩塊，42 行）</li>
+  <li><strong>討論熱插拔</strong>。重點不只是修好，是搞懂那些探測手段：
+    <code>udevadm monitor</code>、<code>/sys/class/drm</code>、<code>journalctl -k</code>、<code>hyprland.log</code>
+    各自在講哪一層，輸出怎麼讀</li>
+  <li>然後才動 <code>iomfb.c</code>。<strong>程式由自己寫</strong>，Claude 負責解釋機制、指路、讀結果、review</li>
+</ol>
+
+<div class="callout">
+  <strong>兩分鐘就能做、但還沒做的事</strong>：把 Studio Display 插上去冷開機一次。
+  到目前為止正主都還沒上場，很可能會看到 <code>acking unhandled call 20</code> ——
+  那是跟今天完全不同的一條線（斷點 2），先知道它長什麼樣，排優先順序會比較有依據。
+</div>
+</div>
 
 <footer>
   最後更新 2026-09-23 ｜ 六張圖支援深色／淺色主題、縮放、搜尋與匯出，直接用瀏覽器開啟即可。<br>

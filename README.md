@@ -63,7 +63,8 @@ Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https
 （`flip_done timed out` 從 2 次變 0 次、`atcphy_mux_set` WARNING 消失）。
 剩下的卡點在合成器：`Cannot commit when a page-flip is awaiting`。
 
-完整過程、#622 兩塊改動的白話解釋、診斷指令、以及踩到的四個坑，見計畫書 **§3.5**。
+完整過程、#622 兩塊改動的白話解釋、診斷指令、以及踩到的四個坑，見計畫書 **§3.5**；
+每次動手的流水帳（做了什麼、發現什麼、下次從哪接）記在 **§12 日誌**。
 
 ## 重新產生圖
 
