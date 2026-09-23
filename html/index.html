@@ -163,6 +163,7 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
   <li><a href="#s1">§1　大方向</a></li>
   <li><a href="#s2">§2　遠中近目標</a></li>
   <li><a href="#s3">§3　完整步驟</a></li>
+  <li><a href="#s3b">§3.5　實測紀錄 2026-09-24</a></li>
   <li><a href="#s4">§4　開機鏈（每個角色）</a></li>
   <li><a href="#s5">§5　兩個階段（Python / C）</a></li>
   <li><a href="#s6">§6　角色、機器與版本</a></li>
@@ -561,6 +562,242 @@ p.write32(addr, val)</code></pre>
   </p>
 </div>
 
+<h2 id="s3b"><span class="n">§3.5</span>實測紀錄 · 2026-09-24</h2>
+
+<p class="muted">
+  機器：MacBook Pro 14" M1 Pro（<code>MacBookPro18,3</code> / <code>apple,j314s</code> / t600x）｜
+  系統：Fedora Asahi Remix + Hyprland｜
+  kernel：<code>7.1.13-fairydust+</code>（用 <a href="https://github.com/bharambetejas/asahi-fairydust-display">bharambetejas</a> 的腳本 build）｜
+  螢幕：MSI MAG161V（16" USB-C 隨身螢幕，純供電模式）
+</p>
+
+<h3>這顆 kernel 上到底疊了哪些東西</h3>
+
+<p>
+  三層，容易搞混，先分清楚 —— <strong>只有第三層是這次為了熱插拔加的</strong>：
+</p>
+
+<table>
+<thead><tr><th></th><th>是什麼</th><th>誰做的</th><th>跟外接螢幕的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>底層</strong></td>
+  <td><code>fairydust</code> 分支本身</td>
+  <td>Asahi 上游的實驗分支</td>
+  <td><strong>USB-C 出圖的程式碼全部在這裡</strong>。正式 kernel 沒有，所以非用不可</td></tr>
+<tr><td><strong>patch 0001</strong></td>
+  <td><code>0001-drm-apple-reconnect-DP2HDMI-output-on-resume.patch</code></td>
+  <td>build 腳本作者自己加的（原作者 rgvxsthi）</td>
+  <td><strong>無關</strong>。它修的是<em>內建 HDMI 孔</em>睡醒之後不亮，走的是另一條路徑。
+    跟著腳本一起來的附贈品，<code>SKIP_PATCHES=1</code> 可以不要</td></tr>
+<tr><td><strong>patch 0002</strong></td>
+  <td><code>0002-pr622-fix-dp-altmode-hotplug.patch</code>（= <a href="https://github.com/AsahiLinux/linux/pull/622">PR #622</a>）</td>
+  <td>這次自己加的</td>
+  <td><strong>這才是這一節在講的東西</strong>，修 USB-C DP 的熱插拔</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  換句話說「fairydust 是分支，不是 patch」；而 0001 雖然跟著 fairydust 的 build 腳本一起來，
+  但它不是 fairydust 的一部分，也跟 USB-C 沒關係。下面所有的 before/after 都只在講 0002。
+</p>
+
+<h3>一句話結論</h3>
+
+<div class="callout">
+  <strong>冷插完全正常；熱插拔畫面回不來，但套了 <a href="https://github.com/AsahiLinux/linux/pull/622">#622</a> 之後不會再卡住整台電腦。</strong>
+  剩下的卡點在合成器：一個永遠等不到完成的 page flip 把 aquamarine 鎖死了。
+</div>
+
+<h3>量到的東西</h3>
+
+<table>
+<thead><tr><th>指標</th><th>#622 前</th><th>#622 後</th></tr></thead>
+<tbody>
+<tr><td>冷插（開機前就插著）會不會亮</td><td>✅ 會</td><td>✅ 會</td></tr>
+<tr><td><code>atcphy_mux_set</code> WARNING</td><td>有</td><td><strong>沒有了</strong></td></tr>
+<tr><td><code>flip_done timed out</code></td><td>2 次</td><td><strong>0 次</strong></td></tr>
+<tr><td><code>AFK[ep:28]: too many enabled services!</code></td><td>有</td><td><strong>沒有了</strong>，改成正常的 <code>new service DCPDPService on channel 17/19</code></td></tr>
+<tr><td>熱插拔後畫面回來</td><td>❌</td><td>❌ 還是不會</td></tr>
+<tr><td>熱插拔時整台卡住</td><td><strong>卡數十秒</strong></td><td><strong>不卡</strong></td></tr>
+</tbody>
+</table>
+
+<p>
+  也就是 <strong>#622 在 t600x 上確實有效</strong>，只是沒有把問題解完。
+  這是目前 #579 上沒有的資料點。
+</p>
+
+<h3>#622 到底改了什麼（白話版）</h3>
+
+<p>
+  它只改兩個檔、42 行，但是兩個完全不同的問題。
+</p>
+
+<div class="stage key">
+  <h3>第一塊 · <code>iomfb.c</code> —— 為什麼會卡住幾十秒</h3>
+  <p>
+    先講「page flip」是什麼：合成器每畫好一張畫面，就交給 kernel 說「換成這張」，
+    然後<strong>停下來等 kernel 回報「換好了」</strong>才畫下一張。這是正常運作方式。
+  </p>
+  <p>
+    問題在於，螢幕剛接上、DCP 還沒真正把顯示管線開起來的那段時間
+    （driver 裡那個旗標叫 <code>valid_mode</code>，這時候是 0），
+    DCP 會<strong>收下那張畫面然後默默丟掉，不回報</strong>。firmware 自己的 log 寫得很直白：
+  </p>
+  <pre><code>swap_submit_dcp: swallowed swap ID 452 as fControllerPowerState is 0
+swap_submit_dcp: swallowed swap ID 452 as timings are not enabled</code></pre>
+  <p>
+    合成器不知道畫面被丟了，就一直等，直到內建的 <strong>10 秒逾時</strong>。
+    它想畫幾張就卡幾個 10 秒 —— 這就是「整台電腦卡住幾十秒」的來源。
+  </p>
+  <p>
+    <strong>patch 做的事</strong>：送出去之前先看一眼 <code>valid_mode</code>。
+    還是 0 就別送了，直接自己標記「這一幀完成」讓合成器繼續跑下去。三行：
+  </p>
+  <pre><code>if (!dcp->valid_mode) {
+        schedule_work(&amp;dcp->vblank_wq);
+        return;
+}</code></pre>
+  <p class="muted">
+    注意這不是「修好顯示」，是「不要因為顯示還沒好就把整台機器拖住」。
+    差別很重要 —— 它解釋了為什麼套完之後不卡了，但畫面依然沒出來。
+  </p>
+</div>
+
+<div class="stage key">
+  <h3>第二塊 · <code>atc.c</code> —— 為什麼熱插不會亮、冷插卻會</h3>
+  <p>
+    USB-C 那條線裡有幾組高速通道，<strong>同一組實體線路可以拿來跑 USB3，也可以拿來跑 DisplayPort</strong>，
+    兩者互斥。要從 USB3 切成 DP，得先把負責 USB3 的那個電路（叫 <strong>PIPE handler</strong>）停下來，
+    否則就是在一條還在通電的線路底下重新接線 —— 硬體會保護性地退回只剩 USB2，DP 根本起不來。
+  </p>
+  <p>
+    <strong>這就是冷插會動、熱插不會動的原因。</strong>
+    開機時就插著的話，那時 USB3 還沒起來，沒有東西要停；
+    熱插的時候 USB3 已經在跑了，才會撞到。
+  </p>
+  <p>
+    原本的程式碼發現「PIPE handler 還開著」時，只是印一個警告然後硬切
+    —— 那正是你在 dmesg 看到的：
+  </p>
+  <pre><code>WARNING: drivers/phy/apple/atc.c:2328 at atcphy_mux_set+0x138/0x230 [phy_apple_atc]</code></pre>
+  <p>
+    <strong>patch 做的事</strong>：把那個「只抱怨不處理」換成真的去處理 ——
+    切換前先把 PIPE handler 停到一個空的 dummy PHY 上，讓線路安靜下來，再切模式。
+    USB3 會暫時斷掉（等 dwc3 重新設定回來），USB2 不受影響。
+  </p>
+  <p class="muted">
+    驗證方式：<code>strings phy-apple-atc.ko | grep 'park PIPE handler'</code>。
+    有這個字串才代表模組是打過 patch 的（見下面「踩到的坑」）。
+  </p>
+</div>
+
+<h3>剩下的問題：一個卡死的 page flip</h3>
+
+<p>套完 #622 之後，熱插拔的失敗鏈條變成這樣：</p>
+
+<ol>
+  <li>拔線那一刻，DCP 吞掉一張 page flip，<strong>永遠不回報完成</strong></li>
+  <li>aquamarine（Hyprland 的 DRM 後端）那張 flip 就一直掛在「等待中」</li>
+  <li>之後<strong>每一次</strong> commit 都被它自己的保護擋掉 ——
+    <code>hyprland.log</code> 裡 <code>Cannot commit when a page-flip is awaiting</code> 出現了 <strong>14 次</strong></li>
+  <li>連手動用 <code>wlr-randr</code> 強制 modeset 都救不回來：
+    kernel 那邊確實跑完了（<code>set_digital_out_mode finished:8162</code>），
+    但畫面 commit 進不去</li>
+</ol>
+
+<p>
+  關鍵是 <strong>Hyprland 並不是「沒反應」</strong>。它的 log 顯示它有偵測到、有列出 16 個模式、也有嘗試 modeset：
+</p>
+<pre><code>drm: Connector DP-1 connected
+drm: Modesetting DP-1 with 1920x1080@60.00Hz
+ERR: drm: Cannot commit when a page-flip is awaiting</code></pre>
+
+<table>
+<thead><tr><th>層</th><th>可以說是它的問題的地方</th></tr></thead>
+<tbody>
+<tr><td><strong>kernel / driver</strong></td>
+  <td>DCP 收下 page flip 卻從不送完成事件。#622 讓「等待」不再卡 10 秒，
+    但遺失的 flip 在合成器那邊的帳沒有被清掉</td></tr>
+<tr><td><strong>Hyprland / aquamarine</strong></td>
+  <td>一旦有 flip 卡住，就再也不接受任何 commit，<strong>沒有逾時、沒有復原路徑</strong>。
+    硬體丟事件是常態，合成器不該因此永久鎖死一個輸出</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  兩邊都有道理，所以先別急著替誰定罪 —— 這正是值得寫進 issue 讓真正懂的人判斷的東西。
+</p>
+
+<h3>用到的診斷指令（下次可以照抄）</h3>
+
+<pre><code># kernel 看到什麼
+cat /sys/class/drm/*/status
+wc -l &lt; /sys/class/drm/card2-DP-1/modes
+journalctl -k -b | grep -iE 'dcp|atcphy|oob_hotplug|flip_done|valid_mode'
+
+# kernel 到底有沒有通知 userspace（拔插時開著這個看）
+udevadm monitor --udev --subsystem-match=drm
+
+# 合成器怎麼想的 —— 這個最容易被忘記，但這次是它給出答案
+tail -f $XDG_RUNTIME_DIR/hypr/*/hyprland.log
+
+# 是哪一台螢幕、插在哪個孔
+wlr-randr
+ls -d /sys/class/typec/port*-partner</code></pre>
+
+<h3>這一輪踩到的四個坑</h3>
+
+<div class="callout stop">
+  <strong>1 · 插錯孔，什麼都不會發生。</strong>
+  只有 <strong>USB-C Left Front</strong> 有 DP（<code>/sys/class/typec/port1</code>，i2c 位址 <code>0-003f</code>）。
+  對照表可以自己讀出來：
+  <pre style="margin:10px 0"><code>for c in /proc/device-tree/soc/*/*/connector; do
+  echo "$(basename $(dirname $c)): $(tr -d '\0' &lt; $c/label)"
+done</code></pre>
+  結果是 <code>usb-pd@38 = Left Back</code>、<code>usb-pd@3f = Left Front</code>、<code>usb-pd@3b = Right</code>。
+  插對之後，<code>ls /sys/class/typec/port*-partner</code> 會出現 <code>port1-partner</code>。
+</div>
+
+<div class="callout stop">
+  <strong>2 · 單獨跑 <code>make install</code> 會把 <code>/boot/dtb</code> 指歪。</strong>
+  這次真的發生了：symlink 變成指向不存在的 <code>/boot/dtb-7.1.13-fairydust+</code>
+  （實際檔案在 <code>/boot/dtbs/7.1.13-fairydust+</code>），然後 <code>update-m1n1</code> 拿著這個斷掉的路徑去刷。
+  原因見 §3 階段 0 的那個警告。<br><br>
+  <strong>只改模組的話根本不需要 <code>make install</code></strong>，用這組就好，順便繞開整個問題：
+  <pre style="margin:10px 0"><code>sudo make INSTALL_MOD_STRIP=1 modules_install
+sudo dracut -f --kver 7.1.13-fairydust+
+readlink -f /boot/dtb        # 確認還是 /boot/dtbs/7.1.13-fairydust+</code></pre>
+</div>
+
+<div class="callout stop">
+  <strong>3 · patch 被退掉了卻沒發現，白測一輪。</strong>
+  中途跑過 <code>git apply -R</code>，之後 build 出來的模組其實沒有 patch，
+  測試結果自然跟沒改一樣。<strong>安裝前一定要驗證二進位檔本身：</strong>
+  <pre style="margin:10px 0"><code>strings drivers/phy/apple/phy-apple-atc.ko | grep 'park PIPE handler'</code></pre>
+  光看 <code>git diff</code> 或檔案時間戳不夠 —— 要確認<strong>編出來的東西</strong>裡面有。
+</div>
+
+<div class="callout">
+  <strong>4 · <code>hyprctl dispatch</code> 在 Lua 設定下要換寫法。</strong>
+  <code>hyprctl dispatch dpms off DP-1</code> 會被 Lua 剖析器拒絕。
+  這次繞過去的辦法是直接用 <code>wlr-randr</code>（走 Wayland 協定，不經過 Hyprland 的設定層）：
+  <pre style="margin:10px 0"><code>wlr-randr --output DP-1 --off &amp;&amp; sleep 1 &amp;&amp; wlr-randr --output DP-1 --on</code></pre>
+  （這次它成功逼出了 modeset，但因為上面那個 page flip 卡死，畫面還是沒回來。）
+</div>
+
+<h3>下一步</h3>
+
+<ul>
+  <li><strong>把這一節的內容貼進 <a href="https://github.com/AsahiLinux/linux/issues/579">#579</a></strong>
+    —— 前後兩份 dmesg + #622 的量化效果，這是那個 issue 上沒有的 t600x 資料點</li>
+  <li>還沒做的：<strong>Studio Display</strong>。目前為止全部是用 MSI MAG161V 測的，
+    所以斷點 2（<code>call 20</code>）還沒在這台機器上碰到</li>
+  <li>還沒做的：chadmed 要的 <strong>full-spec 非 Thunderbolt USB-C 線</strong>測試（見 §9）</li>
+  <li>要追熱插拔的話，下一個問題是「aquamarine 那個卡死的 page flip 能不能從 driver 這邊清掉」
+    —— 那已經是要寫 C 的範圍了</li>
+</ul>
+
 <h2 id="s4"><span class="n">§4</span>開機鏈：每個角色在做什麼</h2>
 
 <p>
@@ -785,11 +1022,17 @@ dmesg | grep -iE 'dcp|atcphy|tipd|typec|altmode'</code></pre>
 <tr><td>disconnected</td><td>—</td><td>—</td><td>卡在<strong>斷點 1</strong>（atcphy，訊號沒出去）——
   先確認你用的是 fairydust、插的是<strong>左前那一孔</strong>、而且是<strong>冷插</strong></td></tr>
 <tr><td>connected</td><td>空的</td><td>—</td><td>卡在<strong>斷點 2</strong>（DCP 沒給 mode）</td></tr>
-<tr><td>connected</td><td>有 mode</td><td>沒看到</td><td><strong>Hyprland 的問題</strong>，kernel 那邊其實通了</td></tr>
+<tr><td>connected</td><td>有 mode</td><td>沒看到</td><td><strong>Hyprland 沒接手</strong>，kernel 那邊其實通了</td></tr>
+<tr><td>connected</td><td>有 mode</td><td><strong>看得到、還說 enabled</strong></td>
+  <td><strong>但畫面還是黑的</strong> —— 這一種 2026-09-24 實際撞到了，見 <a href="#s3b">§3.5</a>。
+  去看 <code>hyprland.log</code> 找 <code>Cannot commit when a page-flip is awaiting</code></td></tr>
 </tbody>
 </table>
 
-<p class="muted">第三種情況是好消息 —— 代表你已經穿過兩個 bug 了，剩下的是 userspace 設定。</p>
+<p class="muted">
+  第三種是好消息 —— 代表你已經穿過兩個斷點了，剩下的是 userspace 設定。
+  第四種最難認，因為每一層都回報「我沒問題」。
+</p>
 
 <h3>版本規則：真正擋人的是「出廠版本」</h3>
 

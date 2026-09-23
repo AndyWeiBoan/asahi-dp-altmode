@@ -56,6 +56,15 @@ Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https
 
 細節見計畫書 §3 階段 0 與 §9。
 
+## 實測紀錄
+
+**2026-09-24**：在 `MacBookPro18,3` + `7.1.13-fairydust+` 上跑完第一輪。冷插正常；
+熱插拔畫面回不來，但套上 [#622](https://github.com/AsahiLinux/linux/pull/622) 之後不再卡住整台電腦
+（`flip_done timed out` 從 2 次變 0 次、`atcphy_mux_set` WARNING 消失）。
+剩下的卡點在合成器：`Cannot commit when a page-flip is awaiting`。
+
+完整過程、#622 兩塊改動的白話解釋、診斷指令、以及踩到的四個坑，見計畫書 **§3.5**。
+
 ## 重新產生圖
 
 六張圖由 [archify](https://github.com/tt-a1i/archify)（MIT）從 `spec/*.json` 產生。
