@@ -13,7 +13,7 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 
 | 檔案 | 內容 |
 |---|---|
-| `html/index.html` | 計畫書本體（10 節：大方向、遠中近目標、完整步驟、材料清單⋯⋯） |
+| `html/index.html` | 計畫書本體（11 節，含名詞表：大方向、遠中近目標、完整步驟、材料清單⋯⋯） |
 | `html/01-stack.html` | 圖 1 · 技術堆疊 —— 訊號經過哪些層，兩個 bug 卡在哪 |
 | `html/02-ladder.html` | 圖 2 · 學習階梯 —— 六個階段與近／中／遠程目標 |
 | `html/03-m1n1.html` | 圖 3 · 角色分配 —— 哪台是 target、哪台是 host |

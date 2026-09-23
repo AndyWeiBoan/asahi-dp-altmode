@@ -169,7 +169,8 @@ footer{margin-top:66px; padding-top:24px; border-top:1px solid var(--line); colo
   <li><a href="#s7">§7　規矩</a></li>
   <li><a href="#s8">§8　材料清單</a></li>
   <li><a href="#s9">§9　現在就能做的事</a></li>
-  <li><a href="#s10">§10　連結索引</a></li>
+  <li><a href="#s10">§10　名詞表</a></li>
+  <li><a href="#s11">§11　連結索引</a></li>
 </ul>
 </details>
 </nav>
@@ -889,7 +890,103 @@ python3 proxyclient/tools/run_guest.py \
 </p>
 </div>
 
-<h2 id="s10"><span class="n">§10</span>連結索引</h2>
+<h2 id="s10"><span class="n">§10</span>名詞表</h2>
+
+<p>
+  這個專案橫跨磁碟、開機、kernel、晶片四個層次，名詞會一直冒出來。
+  這裡只收<strong>會重複出現</strong>的，每條一句話，附上「跟這個專案有什麼關係」。
+</p>
+
+<h3>磁碟與分割</h3>
+<table>
+<thead><tr><th>名詞</th><th>是什麼</th><th>跟你的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>分割區</strong></td><td>硬碟上切出來的一塊空間，大小固定</td><td>—</td></tr>
+<tr><td><strong>APFS container</strong></td><td>分割區裡的一大塊<strong>硬碟</strong>空間，裡面的 volume 共用它、不用事先切死大小</td><td>裝第二份 macOS 時會建一個新的</td></tr>
+<tr><td><strong>volume</strong></td><td>container 裡的一個檔案系統</td><td>—</td></tr>
+<tr><td><strong>volume group</strong></td><td>System + Data + Preboot + Recovery 的組合 <strong>＝ 一個 macOS 安裝</strong></td><td>hypervisor 要的 14.8.3 需要一整組，不是單一 volume</td></tr>
+<tr><td><strong>Preboot</strong></td><td>存放「主系統掛載前就需要的東西」的 volume，<strong>每個安裝一個 UUID 資料夾</strong></td><td>韌體、開機政策、<code>kernelcache</code> 都在這裡 —— 你要挖 kernelcache 就是去這</td></tr>
+<tr><td><strong>stub</strong></td><td>Asahi 安裝時建的約 2.5GB 迷你 macOS，<strong>有殼沒肉、不能開機進去用</strong></td><td>裡面有韌體 + m1n1 + 開機政策。<strong>刪掉 Asahi 就開不了機</strong></td></tr>
+<tr><td><strong>ESP</strong>（EFI 分割區）</td><td>FAT32 分割區，掛在 <code>/boot/efi</code></td><td>放 GRUB 和 <code>vendorfw/</code>。<strong>kernel 不在這裡</strong>，在 <code>/boot</code></td></tr>
+</tbody>
+</table>
+
+<h3>開機鏈</h3>
+<table>
+<thead><tr><th>名詞</th><th>是什麼</th><th>跟你的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>Boot ROM</strong></td><td>燒在矽晶片裡的第一棒，永遠不可改</td><td>信任鏈的根，你碰不到</td></tr>
+<tr><td><strong>iBoot 第一階段</strong></td><td>Apple 韌體，<strong>全機共用一份</strong>。初始化記憶體、儲存、DFU</td><td>—</td></tr>
+<tr><td><strong>iBoot 第二階段</strong></td><td><strong>每個 OS 安裝各自一份</strong>。載入該 OS 的韌體組、執行它的安全政策</td><td>這就是為什麼 Asahi 能降安全等級而 macOS 26 不受影響</td></tr>
+<tr><td><strong>m1n1</strong></td><td>Asahi 的開機載入器，被註冊成 stub 那個「OS 的 kernel」</td><td><strong>現在就在你的開機鏈裡</strong>。hypervisor 是它的另一種模式，不是新裝的東西</td></tr>
+<tr><td><strong>U-Boot</strong></td><td>把 Apple 的特殊環境轉成標準 Linux 開機介面（內含 UEFI 實作）</td><td>—</td></tr>
+<tr><td><strong>GRUB</strong></td><td>讀開機項目清單、顯示選單、載入你選的 kernel</td><td><strong>動手前先讓它顯示出來</strong>，否則新 kernel 開不起來沒地方退回</td></tr>
+<tr><td><strong>DFU 模式</strong></td><td>用另一台 Mac 重刷韌體的救援模式</td><td>最後的安全網。<strong>但會清空整顆硬碟</strong>，先備份</td></tr>
+<tr><td><strong>ADT</strong></td><td>Apple 自己的 device tree 格式，由 iBoot 提供</td><td>m1n1 讀它來認機型、抓執行期數值</td></tr>
+</tbody>
+</table>
+
+<h3>kernel 與檔案</h3>
+<table>
+<thead><tr><th>名詞</th><th>是什麼</th><th>跟你的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>vmlinuz</strong></td><td>編譯好的 kernel 本體（壓縮過）</td><td>在 <code>/boot/vmlinuz-&lt;版本&gt;</code></td></tr>
+<tr><td><strong>initramfs</strong></td><td>開機用的暫時根目錄，讓 kernel 有辦法掛載真正的 rootfs</td><td>必須在 target 機器上產生，不能在 macOS 上做</td></tr>
+<tr><td><strong>device tree</strong></td><td>一份硬體清單，告訴 kernel「有哪些區塊、在哪個位址、用哪條中斷」</td><td>ARM 的硬體無法自我介紹，所以必須有人寫下來。<strong>DTS 就是逆向成果的存放處</strong></td></tr>
+<tr><td><strong>DTB</strong></td><td>device tree 編譯後的二進位檔</td><td><strong>裝 kernel 一定要連 DTB 一起裝</strong>，否則新 driver 永遠不會被實體化</td></tr>
+<tr><td><strong>BLS / loader entries</strong></td><td><code>/boot/loader/entries/</code>，一顆 kernel 一個 <code>.conf</code></td><td>裝完看這裡有沒有多一項 = 最快的驗證</td></tr>
+<tr><td><strong><code>.config</code></strong></td><td>kernel 的編譯設定檔，幾千個選項</td><td><strong>一定要從 <code>/boot/config-$(uname -r)</code> 複製當起點</strong></td></tr>
+<tr><td><strong>16K page</strong></td><td><strong>記憶體</strong>分頁大小。TLB 涵蓋範圍大四倍，Apple 硬體照這個設計</td><td>編錯成 4K 會壞掉 —— 從現有 config 起手就自動正確</td></tr>
+<tr><td><strong>fairydust</strong></td><td>Asahi 的實驗分支，含 USB-C DP 輸出的程式碼</td><td>官方明說「strictly as-is」，只給開發者、不提供支援</td></tr>
+</tbody>
+</table>
+
+<h3>晶片內部</h3>
+<table>
+<thead><tr><th>名詞</th><th>是什麼</th><th>跟你的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>AP</strong></td><td>Application Processor —— 跑作業系統的主 CPU 核心</td><td>「AP call」＝ 協處理器<strong>反過來</strong>呼叫作業系統</td></tr>
+<tr><td><strong>協處理器</strong></td><td>SoC 裡的其他 CPU，各自跑自己的韌體</td><td>一顆 M1 Pro 裡有十幾顆</td></tr>
+<tr><td><strong>DCP</strong></td><td>顯示協處理器。<strong>在 Mac 裡</strong>，跑 Apple 韌體，實際操作顯示硬體</td><td><strong>Bug 2 的對話對象</strong>。你只能透過 mailbox 跟它講話</td></tr>
+<tr><td><strong>A13</strong></td><td><strong>在 Studio Display 裡</strong>的一整顆 SoC，管面板、hub、攝影機</td><td>Bug 2 要叫醒的是<strong>它</strong>，但做這件事的是 DCP，不是你</td></tr>
+<tr><td><strong>atcphy</strong></td><td>Type-C PHY，把訊號送上線。driver 直接讀寫它的暫存器</td><td><strong>Bug 1 的位置</strong>（<code>phy/apple/atc.c</code>）</td></tr>
+<tr><td><strong>tipd</strong></td><td>USB-PD 控制器，負責協商模式與供電</td><td>決定協商到 DP Alt Mode 還是 TB</td></tr>
+<tr><td><strong>ACIO</strong></td><td>Apple Converged I/O —— Thunderbolt 那組硬體（含 Cortex-M3）</td><td>路線 B 的核心，Sven 的 22 個 patch 在處理</td></tr>
+<tr><td><strong>RTKit</strong></td><td>Apple 協處理器共用的通訊協定</td><td>已逆向完成，多個 driver 共用</td></tr>
+<tr><td><strong>DART</strong></td><td>Apple 的 IOMMU（記憶體存取保護）</td><td>已上游，16K 粒度</td></tr>
+<tr><td><strong>mailbox / AP call</strong></td><td>AP 與協處理器之間的雙向訊息機制</td><td><strong>兩邊都能發起</strong>。call 20 是 DCP 問你，不是你問它</td></tr>
+</tbody>
+</table>
+
+<h3>「韌體」的三種意思</h3>
+<table>
+<thead><tr><th>種類</th><th>存在哪</th><th>例子</th></tr></thead>
+<tbody>
+<tr><td><strong>燒在矽晶片裡</strong></td><td>不可改，永久</td><td>Boot ROM</td></tr>
+<tr><td><strong>裝置自帶</strong></td><td>裝置自己的快閃記憶體，可更新但持久</td><td><strong>Studio Display 的 A13</strong>、SSD 控制器</td></tr>
+<tr><td><strong>開機時載入</strong></td><td>平常是磁碟上的檔案，<strong>每次開機載進協處理器</strong></td><td><strong>DCP</strong>、WiFi、ACIO</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  第三種是 Asahi 要從你的 macOS 抓出來的那種，也是「OS-paired firmware」的意思 ——
+  <strong>你的 DCP 韌體來自 macOS 26</strong>，跟其他回報者不同。
+</p>
+
+<h3>這個專案的專用說法</h3>
+<table>
+<thead><tr><th>名詞</th><th>意思</th></tr></thead>
+<tbody>
+<tr><td><strong>t8103 / t600x</strong></td><td>SoC 代號。t8103 ＝ 原版 M1（你的 mini）；t600x ＝ M1 Pro/Max（你的 MBP）</td></tr>
+<tr><td><strong>target</strong></td><td>被觀測的機器。<strong>螢幕插這台</strong>，m1n1 和 macOS guest 都在這台</td></tr>
+<tr><td><strong>host</strong></td><td>旁觀者。只跑 Python、收資料、印 trace，不影響 target</td></tr>
+<tr><td><strong>DP Alt Mode</strong></td><td>把 Type-C 的實體通道直接改接成 DisplayPort。<strong>不是降級版的 TB</strong>，是另一套協定</td></tr>
+<tr><td><strong>DSC</strong></td><td>Display Stream Compression，顯示串流壓縮。頻寬不夠時靠它擠出高解析度</td></tr>
+<tr><td><strong>Bug 1 / Bug 2</strong></td><td>Bug 1 ＝ atcphy 切不進 DP 模式（你的機器）；Bug 2 ＝ DCP 的 call 20 沒人會回（你的螢幕）</td></tr>
+</tbody>
+</table>
+
+<h2 id="s11"><span class="n">§11</span>連結索引</h2>
 
 <h3>你的兩個 bug</h3>
 <ul>
