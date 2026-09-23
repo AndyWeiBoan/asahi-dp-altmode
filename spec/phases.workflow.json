@@ -49,6 +49,6 @@
   "cards": [
     { "dot": "cyan", "title": "為什麼一定要先 Python", "items": ["tracer 是量測儀器，不是產品，它永遠不會進 kernel", "改 Python 重跑只要幾秒；改 C 要 build + 重開機", "帶著一半的猜測去改 kernel，時間都花在等 build"] },
     { "dot": "violet", "title": "「規格」長什麼樣", "items": ["DCP 送 call 20 之後，macOS 回了什麼值", "接著依序做了哪幾件事，link training 在第幾步才開始", "這份文字是別人能接手的唯一形式，也是 clean room 的標準做法"] },
-    { "dot": "amber", "title": "Bug 1 不用經過階段 A", "items": ["它的答案已經知道：切 mode 前先 park PIPE handler（PR #622）", "所以 Bug 1 從頭到尾都是階段 B：cherry-pick、build、測", "先在答案已知的題目上把 C 的迴圈練熟，再去啃 Bug 2"] }
+    { "dot": "amber", "title": "斷點 1 連階段 B 都不用", "items": ["它現在只是「換一顆 kernel」，沒有要改的 C、沒有要 cherry-pick 的 patch", "所以整份計畫裡唯一真正要寫程式的，只有斷點 2", "練手題改成階段 3：轉接頭兩邊都會動，正確答案是已知的"] }
   ]
 }

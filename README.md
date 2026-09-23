@@ -3,6 +3,10 @@
 MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix 上點亮外接螢幕的計畫書。
 表面上是修外接螢幕，實際目標是補上**硬體到 kernel 之間那段空白**。
 
+> **2026-09-23 修訂。** 原本的計畫把 #601 當成「t600x 專屬的 atcphy bug」，
+> 整條路線建立在「先解 Bug 1 才看得到 Bug 2」之上。查證 GitHub 現況後這個前提已不成立 ——
+> #601 已結案、fairydust 的 t600x device tree 早就開好了。計畫書已依此改寫。
+
 ## 線上瀏覽
 
 啟用 GitHub Pages 後，開 https://andyweiboan.github.io/asahi-dp-altmode/
@@ -20,16 +24,35 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 | `html/04-phases.html` | 圖 4 · 兩個階段 —— Python 找答案，C 寫進 kernel |
 | `html/05-boot.html` | 圖 5 · 開機鏈 —— iBoot → m1n1 → U-Boot → GRUB → Linux |
 | `html/06-sides.html` | 圖 6 · Mac vs 螢幕 —— 兩邊各有一顆 Apple 處理器，各自管什麼 |
-| `spec/*.json` | 四張圖的原始碼（archify 規格），要改圖改這裡 |
+| `spec/*.json` | 六張圖的原始碼（archify 規格），要改圖改這裡 |
 
 圖支援深／淺色、縮放、搜尋與引導視角，建議全螢幕開啟。
 
-## 追蹤中的兩個 bug
+## 兩個斷點（狀態為 2026-09-23 查證）
 
-| | 卡在哪 | Issue |
-|---|---|---|
-| Bug 1 | Type-C PHY（`atcphy`），t600x 專屬 | [AsahiLinux/linux#601](https://github.com/AsahiLinux/linux/issues/601) |
-| Bug 2 | DCP 交握（AP call 20），Studio Display 專屬 | [AsahiLinux/linux#579](https://github.com/AsahiLinux/linux/issues/579) |
+| | 卡在哪 | Issue | 狀態 |
+|---|---|---|---|
+| 斷點 1 | Type-C PHY（`atcphy`） | [#601](https://github.com/AsahiLinux/linux/issues/601) | ✅ **closed（2026-09-07）** —— 不是 bug，是 stable kernel 沒有 DP alt mode 這條路。同型機（`MacBookPro18,3`）換到 fairydust 後 USB-C 螢幕點亮 |
+| 斷點 2 | DCP 交握（AP call 20），Studio Display 專屬 | [#579](https://github.com/AsahiLinux/linux/issues/579) | ⬜ **open，4 則討論** —— 在 t8112 與 t6001 上都重現過，問題在螢幕那一側 |
+
+**目前投入產出比最高的一件事**：Asahi 開發者 chadmed 在 #579 要求用「full-spec 非 Thunderbolt 的
+USB-C 線」重測，原回報者手上沒有那種線，至今沒人做。買一條線就能回答。
+
+## 重新產生圖
+
+六張圖由 [archify](https://github.com/tt-a1i/archify)（MIT）從 `spec/*.json` 產生。
+
+```bash
+npx skills add tt-a1i/archify -g          # 安裝到 ~/.claude/skills/archify
+
+node ~/.claude/skills/archify/bin/archify.mjs \
+  deliver architecture spec/stack.architecture.json html/01-stack.html --quality showcase
+```
+
+對應關係：`stack`→`01-stack`、`ladder`→`02-ladder`、`m1n1`→`03-m1n1`、
+`phases`→`04-phases`、`boot`→`05-boot`、`sides`→`06-sides`；
+`.architecture.json` 用 `architecture`，`.workflow.json` 用 `workflow`。
+六張圖目前都通過 `validate --quality showcase` 的 9/9 檢查。
 
 ## 說明
 

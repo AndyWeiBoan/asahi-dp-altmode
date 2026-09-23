@@ -19,17 +19,17 @@
       },
       {
         "id": "bug1",
-        "label": "Bug 1：Type-C PHY",
+        "label": "斷點 1：Type-C PHY（已解）",
         "focus": [
           "tipd",
           "atcphy",
           "atc_c"
         ],
-        "note": "port 切不進 DP 模式，訊號根本沒送出去。"
+        "note": "stable kernel 沒有這條路；fairydust 有，#601 已結案。"
       },
       {
         "id": "bug2",
-        "label": "Bug 2：DCP 交握",
+        "label": "斷點 2：DCP 交握（未解）",
         "focus": [
           "studio",
           "dcp",
@@ -106,7 +106,7 @@
         160,
         76
       ],
-      "tag": "Bug 1：只有 t600x 有"
+      "tag": "斷點 1：fairydust 已修好"
     },
     {
       "id": "dcp",
@@ -121,7 +121,7 @@
         170,
         76
       ],
-      "tag": "Bug 2：兩台都有"
+      "tag": "斷點 2：所有 SoC 都中"
     },
     {
       "id": "atc_c",
@@ -247,20 +247,20 @@
   "cards": [
     {
       "dot": "rose",
-      "title": "Bug 1 — atcphy（issue #601）",
+      "title": "斷點 1 — atcphy（#601 已 closed）",
       "items": [
         "症狀：atcphy_mux_set WARN + Failed to lock pipehandler",
-        "port 切到 DP 模式時 firmware 不回應，退回 USB2",
-        "已有程式碼：PR #622 / #503 / #476，但都沒 merge"
+        "真相：不是 bug，是 stable kernel 沒有 DP alt mode 這條路",
+        "解法：換到 fairydust 分支。同型機 MacBookPro18,3 實測可用"
       ]
     },
     {
       "dot": "amber",
-      "title": "Bug 2 — DCP 交握（issue #579）",
+      "title": "斷點 2 — DCP 交握（#579 仍 open）",
       "items": [
         "症狀：acking unhandled call 20，link 立刻拆掉",
         "DCP 回報 INACTIVE_SINK_DETECTED：螢幕的 A13 還在睡",
-        "沒有內建處理器的螢幕不會觸發這條路徑"
+        "t8112 與 t6001 都重現過，所以問題在螢幕那一側"
       ]
     },
     {

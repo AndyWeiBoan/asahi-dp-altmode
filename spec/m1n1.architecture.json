@@ -247,7 +247,7 @@
       "items": [
         "target＝被觀測的機器，螢幕插這台，m1n1 和 guest 都在這台",
         "host＝旁觀者，只跑 Python、收資料、印出來，不影響 target",
-        "MBP 有內建螢幕所以適合當 host；mini 是 t8103，沒有 Bug 1"
+        "MBP 有內建螢幕又已裝好 Asahi，適合當 host；降安全模型只發生在 mini"
       ]
     },
     {
@@ -263,7 +263,7 @@
       "dot": "amber",
       "title": "之後角色會對調",
       "items": [
-        "要測 Bug 1（t600x）時，MBP 變 target、mini 變 host",
+        "要改測 t600x 自己的 DCP 時角色對調：MBP 變 target、mini 變 host",
         "那時 Studio Display 插到 MBP，mini 需要自己的畫面",
         "target 需要一份 macOS 14.8.3 在獨立的 volume group 上"
       ]

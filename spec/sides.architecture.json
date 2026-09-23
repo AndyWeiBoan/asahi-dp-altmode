@@ -16,7 +16,7 @@
       { "id": "two", "label": "兩顆處理器", "focus": ["dcp", "a13"], "note": "DCP 在 Mac 裡、A13 在螢幕裡 —— 這兩顆最容易搞混。" },
       { "id": "cable", "label": "那一條線", "focus": ["atcphy", "a13"], "note": "同一條 USB-C 上同時跑影像、USB 資料和電力。" },
       { "id": "mine", "label": "你能改的部分", "focus": ["atc_c", "drm_apple"], "note": "整張圖裡只有這兩個檔案是你的。" },
-      { "id": "bug2", "label": "Bug 2 在哪裡", "focus": ["drm_apple", "dcp", "a13"], "note": "Mac 的 DCP 說「對面那顆還在睡」，而 driver 不知道怎麼回應。" }
+      { "id": "bug2", "label": "斷點 2 在哪裡", "focus": ["drm_apple", "dcp", "a13"], "note": "Mac 的 DCP 說「對面那顆還在睡」，而 driver 不知道怎麼回應。" }
     ]
   },
   "components": [
@@ -25,7 +25,7 @@
     { "id": "atcphy", "type": "backend", "label": "atcphy", "sublabel": "Type-C PHY，把訊號送上線", "pos": [300, 190], "size": [170, 84] },
     { "id": "drm_apple", "type": "backend", "label": "drm/apple", "sublabel": "dcp.c / dptx", "pos": [50, 400], "size": [190, 80], "tag": "你能改" },
     { "id": "atc_c", "type": "backend", "label": "phy/apple/atc.c", "sublabel": "PHY 驅動", "pos": [300, 400], "size": [170, 80], "tag": "你能改" },
-    { "id": "a13", "type": "external", "label": "A13 Bionic", "sublabel": "螢幕裡的完整 SoC，跑 Apple 自家韌體", "pos": [700, 190], "size": [205, 84], "tag": "Bug 2 要叫醒它" },
+    { "id": "a13", "type": "external", "label": "A13 Bionic", "sublabel": "螢幕裡的完整 SoC，跑 Apple 自家韌體", "pos": [700, 190], "size": [205, 84], "tag": "斷點 2 要叫醒它" },
     { "id": "panel", "type": "frontend", "label": "5K 面板", "sublabel": "5120 × 2880", "pos": [975, 190], "size": [170, 84] },
     { "id": "hub", "type": "backend", "label": "USB hub 與週邊", "sublabel": "3 個 USB-C、攝影機、喇叭、麥克風", "pos": [700, 360], "size": [205, 84] }
   ],
@@ -43,8 +43,8 @@
     { "id": "periph", "from": "a13", "to": "hub", "label": "管週邊", "fromSide": "bottom", "toSide": "top", "labelAt": [802, 317] }
   ],
   "cards": [
-    { "dot": "cyan", "title": "兩顆 Apple 處理器，一邊一顆", "items": ["DCP 在 Mac 裡：負責產生畫面、跟螢幕交握", "A13 在 Studio Display 裡：那是一整顆 iPhone 等級的 SoC，跑 Apple 自家韌體", "Bug 2 就是這兩顆之間的問題 —— Mac 的 DCP 回報「對面那顆還在睡」"] },
-    { "dot": "violet", "title": "那一條線上同時跑三種東西", "items": ["DP 影像（DisplayPort Alt Mode）、USB 資料（給 hub 和攝影機）、電力", "電力方向是反的：Studio Display 供電給 Mac，最高 96W", "#601 的失敗點正是在「USB3 + DP 混合模式」的切換上"] },
+    { "dot": "cyan", "title": "兩顆 Apple 處理器，一邊一顆", "items": ["DCP 在 Mac 裡：負責產生畫面、跟螢幕交握", "A13 在 Studio Display 裡：那是一整顆 iPhone 等級的 SoC，跑 Apple 自家韌體", "斷點 2 就是這兩顆之間的問題 —— Mac 的 DCP 回報「對面那顆還在睡」"] },
+    { "dot": "violet", "title": "那一條線上同時跑三種東西", "items": ["DP 影像（DisplayPort Alt Mode）、USB 資料（給 hub 和攝影機）、電力", "電力方向是反的：Studio Display 供電給 Mac，最高 96W", "線材本身還沒被排除：chadmed 要的 full-spec 非 TB 線測試還沒人做"] },
     { "dot": "amber", "title": "整張圖你只能改兩個檔案", "items": ["drm/apple 與 phy/apple/atc.c —— 只有這兩個是 Linux 的、是你的", "DCP 的韌體從你自己的 macOS 抓出來，原樣載入，不可修改", "A13 裡面那套韌體完全碰不到，只能想辦法照它期待的方式跟它講話"] }
   ]
 }

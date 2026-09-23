@@ -32,7 +32,7 @@
           "m1",
           "m2"
         ],
-        "note": "階段 3 同時是 Bug 1 的測試，也是讀懂 DCP 的訓練。"
+        "note": "階段 3 是唯一答案已知的案例，用來校準你的閱讀能力。"
       },
       {
         "id": "spine",
@@ -165,7 +165,7 @@
       "lane": "outcome",
       "col": 4,
       "type": "external",
-      "label": "Bug 1 收斂",
+      "label": "斷點 1 驗證",
       "sublabel": "USB-C 螢幕會亮",
       "width": 138
     },
@@ -174,7 +174,7 @@
       "lane": "outcome",
       "col": 5,
       "type": "external",
-      "label": "Bug 2 收斂",
+      "label": "斷點 2 收斂",
       "sublabel": "Studio Display 會亮",
       "width": 138
     }
@@ -224,7 +224,7 @@
       "title": "近程目標（先做這個）",
       "items": [
         "build 出一顆能開機的 fairydust kernel，舊 kernel 留著隨時退回",
-        "在 #601 / #579 留言：我有 t600x + Studio Display，可錄 trace、可測 patch",
+        "買 full-spec 非 TB 的 USB-C 線測 Studio Display，回報到 #579（沒人做過）",
         "順便問清楚 fairydust 的 dts 把哪個 port 指定給 DP，別跟接線孔撞在一起",
         "自己讀一遍 Copyright and Reverse Engineering Policy 原文"
       ]
@@ -235,7 +235,7 @@
       "items": [
         "能在 phy/apple/atc.c 加 printk 並看懂執行路徑",
         "能架起 m1n1 hypervisor，錄下一份可讀的 trace",
-        "把 PR #622 / #503 rebase 到現在的 fairydust 並在 t600x 上實測",
+        "插普通 USB-C 螢幕，確認 #601 的結論在你的 t600x 上也成立",
         "回報結果 —— 這一步本身就是社群目前缺的東西"
       ]
     },
@@ -243,8 +243,7 @@
       "dot": "violet",
       "title": "遠程目標",
       "items": [
-        "Bug 1：讓 M1 Pro 的 Type-C port 真的切進 DP 模式",
-        "Bug 2：從 macOS trace 反推 call 20 的正確回應序列",
+                "從 macOS trace 反推 call 20 的正確回應序列，寫成規格再寫 C",
         "把成果送 PR（注意：要自己讀 trace、自己寫，才進得了上游）",
         "真正的收穫是能力：下次遇到任何不支援的裝置都不再害怕"
       ]
@@ -257,7 +256,7 @@
         "要用便宜的 USB-C→HDMI 轉接頭，不要用內建 HDMI 孔",
         "內建 HDMI 走獨立轉換晶片，對話形狀跟 Type-C 路徑不一樣",
         "轉接頭走的是同一條 atcphy → dcpext → dptx，只是少了那顆 A13",
-        "所以這一個練習同時完成 Bug 1 的測試與 DCP 的閱讀訓練"
+        "轉接頭在 t6001 上已有人跑到 4K60，所以正確長相是已知的"
       ]
     }
   ]
