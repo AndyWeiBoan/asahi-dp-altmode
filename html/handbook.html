@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>手冊</title>
+<link rel="stylesheet" href="doc.css">
+</head>
+<body>
+<button class="themebtn" id="tt" type="button">深色</button>
+<div class="wrap">
+
+<header>
+  <h1>手冊</h1>
+  <p class="lede">操作、診斷、這台機器的硬事實、踩過的坑。卡住的時候來這裡查，不是拿來讀的。</p>
+</header>
+
+<div class="layout">
+<nav class="toc">
+<details open>
+<summary>目錄 ▾</summary>
+<h4>頁面</h4>
+<ul class="pg">
+  <li><a href="index.html">入口<small>現況與下一步</small></a></li>
+  <li><a href="handbook.html" class="on">手冊<small>操作・診斷・坑・名詞</small></a></li>
+  <li><a href="journal.html">日誌<small>每次動手記一筆</small></a></li>
+  <li><a href="plan.html">計畫<small>目標・階梯・遠期</small></a></li>
+</ul>
+<h4>圖</h4>
+<ul class="pg">
+  <li><a href="01-stack.html">圖 1 · 技術堆疊<small>兩個斷點卡在哪一層</small></a></li>
+  <li><a href="02-ladder.html">圖 2 · 學習階梯<small>六個階段與遠中近目標</small></a></li>
+  <li><a href="03-m1n1.html">圖 3 · 角色分配<small>哪台 target、哪台 host</small></a></li>
+  <li><a href="04-phases.html">圖 4 · 兩個階段<small>Python 找答案，C 寫進 kernel</small></a></li>
+  <li><a href="05-boot.html">圖 5 · 開機鏈<small>iBoot → m1n1 → U-Boot → GRUB</small></a></li>
+  <li><a href="06-sides.html">圖 6 · Mac vs 螢幕<small>哪些東西在哪一邊</small></a></li>
+</ul>
+<h4>本頁章節</h4>
+<ul id="toclist">
+  <li><a href="#h1">§1　操作</a></li>
+  <li><a href="#h2">§2　診斷</a></li>
+  <li><a href="#h3">§3　這台機器的硬事實</a></li>
+  <li><a href="#h4">§4　踩過的坑</a></li>
+  <li><a href="#h5">§5　開機鏈</a></li>
+  <li><a href="#h6">§6　名詞表</a></li>
+  <li><a href="#h7">§7　連結索引</a></li>
+</ul>
+</details>
+</nav>
+<main>
+
+<h2 id="h1"><span class="n">§1</span>操作</h2>
+
+<p class="muted">怎麼 build、怎麼裝、怎麼退回、更新之後要檢查什麼。全部是照著做就好的東西。</p>
+
+</ol>
+  <div class="callout">
+    <strong>可能不用自己來 —— 而且它的支援表上就有你的機型。</strong>
+    <a href="https://github.com/bharambetejas/asahi-fairydust-display">bharambetejas/asahi-fairydust-display</a>
+    是針對 <strong>Fedora Asahi Remix</strong> 的一鍵腳本，
+    支援表把 <strong>MacBook Pro M1 Pro 標成「Tested by community」</strong>。
+    它會處理相依套件、Rust、GPU driver、DP alt mode 模組、DTB、m1n1、GRUB、typec 模組自動載入，
+    還附一個 hotplug 腳本。<strong>需要 15GB 空間、60～90 分鐘</strong>。<br><br>
+    它的 README 也獨立寫了同一件事：<strong>「Plug adapter into the FRONT-MOST USB-C port」</strong>
+    —— 跟 dts 裡的 <code>USB-C Left Front</code> 對得上。<br><br>
+    <span class="muted">它預設會多打一個 patch（修內建 HDMI 在 suspend/resume 後不亮），
+    想要原汁原味的分支就 <code>SKIP_PATCHES=1</code>。</span>
+  </div>
+  <div class="callout">
+    <strong>讀過腳本之後的三件事。</strong>
+    <ul style="margin-bottom:0">
+      <li><strong>材料只有 <code>.config</code> 來自本機。</strong>原始碼是
+        <code>git clone AsahiLinux/linux --branch fairydust --filter=blob:none</code>（約 3GB）；
+        <code>.config</code> 則是 <code>cp /boot/config-$(uname -r)</code> ——
+        所以 16K page 那個坑它自動幫你避開了</li>
+      <li><strong>README 的第 9 步不會跑。</strong><code>main()</code> 裡
+        <code>setup_display_script</code> 是註解掉的，註解寫「causes login loop on KDE/Wayland」。
+        對 Hyprland 使用者是好消息 —— 那段會寫一個用 <code>xrandr</code>、
+        還硬寫死 <code>2560x1600</code> 的腳本（14" 是 3024x1964），
+        外加 XDG autostart 和一條 <code>RUN+=</code> 跑 <code>sleep 2</code> 的 udev rule。全部不會發生</li>
+      <li><strong>它改 GRUB 的那行對你是空轉。</strong>它用
+        <code>sed 's/GRUB_TIMEOUT_STYLE=.*/…/'</code>，只改既有的行；
+        <code>/etc/default/grub</code> 裡沒有這一行的話什麼都不會發生，要自己加</li>
+    </ul>
+  </div>
+  <div class="callout">
+    <strong>dts 不用 cherry-pick 了。</strong>fairydust 分支的
+    <code>arch/arm64/boot/dts/apple/t600x-j314-j316.dtsi</code> 第 12 行就是
+    <code>#define ENABLE_DCPEXT_TYPEC</code>，無條件打開；往下
+    <code>typec1</code> 已經接上 <code>displayport = &lt;&amp;dcpext1&gt;</code>。
+    也就是 <a href="https://github.com/AsahiLinux/linux/pull/476">PR #476</a> 想做的事，fairydust 本身就有了。<br><br>
+    <strong>而且只有一個孔有 DP。</strong>那個 connector 的 label 是
+    <code>"USB-C Left Front"</code> —— <strong>左側靠前那一孔</strong>，走 <code>atcphy1</code>。
+    #601 的回報者也獨立講了同一件事（「only one port carries DP」）。
+    其餘的孔插了不會有反應，這不是故障。
+    <span class="muted">順帶：<code>atcphy3</code> 在 dts 裡註明
+    <code>ATC3 is used for DisplayPort -&gt; HDMI only</code>，那是內建 HDMI 孔的專用路徑。</span>
+  </div>
+  <div class="callout">
+    <strong>#601 回報者的具體作法</strong>（Arch/omarchy，M1 Pro 14"，可直接對照）：
+    <ul style="margin-bottom:0">
+      <li><code>.config</code> 直接拿現在跑的那顆（<code>/proc/config.gz</code>），
+        他確認需要的符號本來就都開著：<code>CONFIG_DRM_APPLE</code>、<code>CONFIG_PHY_APPLE_ATC</code>、
+        <code>CONFIG_PHY_APPLE_DPTX</code>、<code>CONFIG_MUX_APPLE_DPXBAR</code>、<code>CONFIG_TYPEC_DP_ALTMODE</code></li>
+      <li>裝成<strong>獨立的並存 package</strong>，stable kernel 留在 GRUB 當退路</li>
+      <li><strong>冷插比熱插可靠</strong> —— 開機前就把螢幕插著</li>
+    </ul>
+  </div>
+  <div class="callout stop">
+    <strong>每次官方 kernel 更新，都會把 <code>/boot/dtb</code> 搶回去 —— 這是最容易中招的一點。</strong><br><br>
+    Fedora 的 <code>/usr/lib/kernel/install.d/10-devicetree.install</code> 在每次 kernel
+    <code>add</code> 時會無條件做這件事：
+    <pre style="margin:10px 0"><code>rm -f /boot/dtb
+ln -s dtb-$KERNEL_VERSION /boot/dtb</code></pre>
+    它掃的是 <strong><code>/boot/dtb-*</code></strong>（連字號），
+    而 <code>make dtbs_install</code> 把 fairydust 的 DTB 裝到
+    <strong><code>/boot/dtbs/&lt;版本&gt;</code></strong>（複數、斜線）——
+    <strong>兩者對不上，所以 fairydust 的 DTB 對那支 hook 是隱形的</strong>。
+    緊接著 <code>15-update-m1n1.install</code> 會跑 <code>update-m1n1</code> 把官方 DTB 刷進去。<br><br>
+    結果：<code>omarchy update</code> 帶進一顆新官方 kernel 之後，
+    你的 fairydust kernel 會<strong>帶著官方 DTB 開機</strong> ——
+    <code>ENABLE_DCPEXT_TYPEC</code> 那些節點不見了，外接螢幕安靜地不再亮。
+    症狀是「明明沒動什麼，某天就壞了」。<br><br>
+    <strong>檢查與修復：</strong>
+    <pre style="margin:10px 0"><code>readlink /boot/dtb          # 指到 dtb-…asahi… 就是被搶走了
+sudo ln -sfn /boot/dtbs/&lt;fairydust 版本&gt; /boot/dtb
+sudo update-m1n1</code></pre>
+    值得做成 omarchy 的 post-update hook，跟你其他那幾個放在一起。
+  </div>
+  <div class="callout">
+    <strong>另外兩件關於 omadora 的事。</strong>
+    <ul style="margin-bottom:0">
+      <li><strong><code>installonly_limit</code> 管不到它。</strong>
+        那個限制只作用在 RPM 標記為 installonly 的套件；腳本走的是 <code>make install</code>，
+        裝出來的不是 RPM，dnf 不會把它擠掉。
+        <span class="muted">（會被擠掉的是最舊那顆<em>官方</em> kernel。）</span></li>
+      <li><code>omarchy update</code> <strong>不會</strong>幫你重 build fairydust，上游有新 commit 要自己重跑</li>
+    </ul>
+  </div>
+  <div class="callout">
+    <strong>它動到的全域設定只有一個，而且退回 stable 也吃得到。</strong>
+    就是上面那個 <code>/boot/dtb</code> + <code>update-m1n1</code> ——
+    m1n1 之後每次開機都帶著 fairydust 的 device tree，<strong>包括你在 GRUB 選回官方 kernel 那次</strong>。
+    其餘（模組、DTB、vmlinuz、initramfs）都帶 <code>-fairydust</code> 後綴並存，不覆蓋任何東西。<br><br>
+    repo 裡的 <code>asahi-fairydust-uninstall.sh</code> 會把這些全部還原，
+    包含把 <code>/boot/dtb</code> 指回官方版本再跑一次 <code>update-m1n1</code>。
+    <span class="muted">它會擋你在 fairydust kernel 裡執行，要先重開機回官方 kernel。</span>
+  
+
+<h3>只改模組的時候不要跑 <code>make install</code></h3>
+<p>
+  改動只在 <code>*.ko</code>（例如只動了 <code>iomfb.c</code> 或 <code>atc.c</code>）的話，
+  不需要重裝 kernel 本體，也就不會觸發那個把 <code>/boot/dtb</code> 指歪的 hook：
+</p>
+<pre><code>cd ~/linux-fairydust
+make -j8                                    # 增量，約 40 秒
+strings drivers/phy/apple/phy-apple-atc.ko | grep 'park PIPE handler'   # 驗證
+sudo make INSTALL_MOD_STRIP=1 modules_install
+sudo dracut -f --kver 7.1.13-fairydust+
+readlink -f /boot/dtb                       # 要是 /boot/dtbs/7.1.13-fairydust+
+sudo reboot</code></pre>
+
+<h3>退回與移除</h3>
+<ul>
+  <li><strong>暫時退回</strong>：重開機，在 GRUB 選 <code>7.1.13-402.asahi.fc44.aarch64+16k</code>。
+    官方 kernel 完全沒被動過</li>
+  <li><strong>退掉某個 patch</strong>：
+    <code>cd ~/linux-fairydust &amp;&amp; git apply -R ~/dev/asahi-fairydust-display/patches/&lt;檔名&gt;</code>，
+    然後照上面那組重編重裝。<strong>退完記得也把 <code>patches/</code> 裡那個檔移走</strong>，
+    否則下次跑 build 腳本又會自動套回去</li>
+  <li><strong>完全移除</strong>：<code>~/dev/asahi-fairydust-display/asahi-fairydust-uninstall.sh</code>。
+    它會把 kernel、模組、DTB、<code>/boot/dtb</code>、m1n1 全部還原，
+    但<strong>要先重開機回官方 kernel</strong> 才跑得動</li>
+</ul>
+
+<h2 id="h2"><span class="n">§2</span>診斷</h2>
+
+<p class="muted">
+  每個工具只看得到一層。搞混層次就會把時間花在錯的地方 —— 這一節就是為了避免那件事。
+</p>
+
+<h3>各個工具在看哪一層</h3>
+<table>
+<thead><tr><th>工具</th><th>它看得到什麼</th><th>看不到什麼</th></tr></thead>
+<tbody>
+<tr><td><code>/sys/class/typec/port*-partner</code></td>
+    <td>有沒有東西插進來、插在<strong>哪一個孔</strong></td><td>那東西是不是螢幕</td></tr>
+<tr><td><code>/sys/class/drm/*/status</code><br><code>.../modes</code></td>
+    <td>kernel 認不認得這個顯示接頭、有沒有拿到 EDID</td><td>畫面有沒有真的出去</td></tr>
+<tr><td><code>journalctl -k</code></td>
+    <td>driver 和 DCP firmware 在講什麼（最底層的真話）</td><td>userspace 做了什麼</td></tr>
+<tr><td><code>udevadm monitor --udev --subsystem-match=drm</code></td>
+    <td>kernel <strong>有沒有通知</strong> userspace</td><td>userspace 有沒有理它</td></tr>
+<tr><td><code>hyprland.log</code><br><code>$XDG_RUNTIME_DIR/hypr/*/</code></td>
+    <td>合成器收到之後<strong>怎麼想、做了什麼、失敗在哪</strong></td><td>硬體狀態</td></tr>
+<tr><td><code>wlr-randr</code> / <code>hyprctl monitors</code></td>
+    <td>合成器目前<em>認為</em>的輸出狀態</td><td>那個認知對不對</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+  <strong><code>hyprland.log</code> 是最容易被忘記、但最常給出答案的那一個。</strong>
+  2026-09-24 那次熱插拔，前面四個工具都顯示「一切正常」，
+  只有它講出真話：<code>Cannot commit when a page-flip is awaiting</code>。
+</div>
+
+<h3>怎麼分辨是 kernel 的問題還是 Hyprland 的問題</h3>
+
+<p>
+  你的 MBP 跑 Hyprland，這會製造一種很容易誤判的情況：<strong>kernel 其實已經把螢幕接起來了，但畫面就是沒出來</strong>。
+  這不是假設 —— <a href="https://github.com/AsahiLinux/linux/pull/622">PR #622</a> 的作者就留了這個已知問題：
+  「重新接上之後，userspace 沒有對 BAD link status 做出反應，要手動 toggle output」。那是合成器層，不是 kernel。
+</p>
+
+<p>所以每次測試都照這個順序查，對應<a href="01-stack.html">圖 1</a> 的層次：</p>
+
+<pre><code># ① kernel 有沒有看到這個接頭？
+ls /sys/class/drm/
+cat /sys/class/drm/*/status          # connected / disconnected
+
+# ② 有沒有拿到 mode？
+cat /sys/class/drm/card*/*/modes
+
+# ③ 合成器有沒有接手？
+hyprctl monitors all
+wlr-randr
+
+# ④ 底層在講什麼
+dmesg | grep -iE 'dcp|atcphy|tipd|typec|altmode'</code></pre>
+
+<table>
+<thead><tr><th>① connector</th><th>② modes</th><th>③ Hyprland</th><th>結論</th></tr></thead>
+<tbody>
+<tr><td>disconnected</td><td>—</td><td>—</td><td>卡在<strong>斷點 1</strong>（atcphy，訊號沒出去）——
+  先確認你用的是 fairydust、插的是<strong>左前那一孔</strong>、而且是<strong>冷插</strong></td></tr>
+<tr><td>connected</td><td>空的</td><td>—</td><td>卡在<strong>斷點 2</strong>（DCP 沒給 mode）</td></tr>
+<tr><td>connected</td><td>有 mode</td><td>沒看到</td><td><strong>Hyprland 沒接手</strong>，kernel 那邊其實通了</td></tr>
+<tr><td>connected</td><td>有 mode</td><td><strong>看得到、還說 enabled</strong></td>
+  <td><strong>但畫面還是黑的</strong> —— 這一種 2026-09-24 實際撞到了，見<a href="journal.html">日誌</a>。
+  去看 <code>hyprland.log</code> 找 <code>Cannot commit when a page-flip is awaiting</code></td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  第三種是好消息 —— 代表你已經穿過兩個斷點了，剩下的是 userspace 設定。
+  第四種最難認，因為每一層都回報「我沒問題」。
+</p>
+
+
+<h3>用到的診斷指令（下次可以照抄）</h3>
+
+<pre><code># kernel 看到什麼
+cat /sys/class/drm/*/status
+wc -l &lt; /sys/class/drm/card2-DP-1/modes
+journalctl -k -b | grep -iE 'dcp|atcphy|oob_hotplug|flip_done|valid_mode'
+
+# kernel 到底有沒有通知 userspace（拔插時開著這個看）
+udevadm monitor --udev --subsystem-match=drm
+
+# 合成器怎麼想的 —— 這個最容易被忘記，但這次是它給出答案
+tail -f $XDG_RUNTIME_DIR/hypr/*/hyprland.log
+
+# 是哪一台螢幕、插在哪個孔
+wlr-randr
+ls -d /sys/class/typec/port*-partner</code></pre>
+
+
+<h2 id="h3"><span class="n">§3</span>這台機器的硬事實</h2>
+
+<p class="muted">查證過、不會變的東西。省得每次重查。</p>
+
+<h3>DP 只在左前那一孔</h3>
+<table>
+<thead><tr><th>sysfs</th><th>i2c</th><th>實體位置</th><th>DP</th></tr></thead>
+<tbody>
+<tr><td><code>port0</code></td><td><code>0-0038</code></td><td>USB-C Left Back（靠螢幕轉軸）</td><td>❌</td></tr>
+<tr><td><strong><code>port1</code></strong></td><td><code>0-003f</code></td><td><strong>USB-C Left Front（靠觸控板）</strong></td><td>✅</td></tr>
+<tr><td><code>port2</code></td><td><code>0-003b</code></td><td>USB-C Right</td><td>❌</td></tr>
+<tr><td><code>port3</code></td><td><code>0-003a</code></td><td>（內部，非實體孔）</td><td>❌</td></tr>
+</tbody>
+</table>
+<p>對照表可以自己讀出來，不用記：</p>
+<pre><code>for c in /proc/device-tree/soc/*/*/connector; do
+  echo "$(basename $(dirname $c)): $(tr -d '\0' &lt; $c/label)"
+done</code></pre>
+<p class="muted">
+  插對之後 <code>ls /sys/class/typec/port*-partner</code> 會出現 <code>port1-partner</code>。
+  插錯孔<strong>完全沒有反應，也不會有任何錯誤訊息</strong>。
+</p>
+
+<h3>這顆 kernel 上到底疊了哪些東西</h3>
+
+<p>
+  三層，容易搞混，先分清楚 —— <strong>只有第三層是這次為了熱插拔加的</strong>：
+</p>
+
+<table>
+<thead><tr><th></th><th>是什麼</th><th>誰做的</th><th>跟外接螢幕的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>底層</strong></td>
+  <td><code>fairydust</code> 分支本身</td>
+  <td>Asahi 上游的實驗分支</td>
+  <td><strong>USB-C 出圖的程式碼全部在這裡</strong>。正式 kernel 沒有，所以非用不可</td></tr>
+<tr><td><strong>patch 0001</strong></td>
+  <td><code>0001-drm-apple-reconnect-DP2HDMI-output-on-resume.patch</code></td>
+  <td>build 腳本作者自己加的（原作者 rgvxsthi）</td>
+  <td><strong>無關</strong>。它修的是<em>內建 HDMI 孔</em>睡醒之後不亮，走的是另一條路徑。
+    跟著腳本一起來的附贈品，<code>SKIP_PATCHES=1</code> 可以不要</td></tr>
+<tr><td><strong>patch 0002</strong></td>
+  <td><code>0002-pr622-fix-dp-altmode-hotplug.patch</code>（= <a href="https://github.com/AsahiLinux/linux/pull/622">PR #622</a>）</td>
+  <td>這次自己加的</td>
+  <td><strong>這才是這一節在講的東西</strong>，修 USB-C DP 的熱插拔</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  換句話說「fairydust 是分支，不是 patch」；而 0001 雖然跟著 fairydust 的 build 腳本一起來，
+  但它不是 fairydust 的一部分，也跟 USB-C 沒關係。下面所有的 before/after 都只在講 0002。
+</p>
+
+
+<h3>#622 到底改了什麼（白話版）</h3>
+
+<p>
+  它只改兩個檔、42 行，但是兩個完全不同的問題。
+</p>
+
+<div class="stage key">
+  <h3>第一塊 · <code>iomfb.c</code> —— 為什麼會卡住幾十秒</h3>
+  <p>
+    先講「page flip」是什麼：合成器每畫好一張畫面，就交給 kernel 說「換成這張」，
+    然後<strong>停下來等 kernel 回報「換好了」</strong>才畫下一張。這是正常運作方式。
+  </p>
+  <p>
+    問題在於，螢幕剛接上、DCP 還沒真正把顯示管線開起來的那段時間
+    （driver 裡那個旗標叫 <code>valid_mode</code>，這時候是 0），
+    DCP 會<strong>收下那張畫面然後默默丟掉，不回報</strong>。firmware 自己的 log 寫得很直白：
+  </p>
+  <pre><code>swap_submit_dcp: swallowed swap ID 452 as fControllerPowerState is 0
+swap_submit_dcp: swallowed swap ID 452 as timings are not enabled</code></pre>
+  <p>
+    合成器不知道畫面被丟了，就一直等，直到內建的 <strong>10 秒逾時</strong>。
+    它想畫幾張就卡幾個 10 秒 —— 這就是「整台電腦卡住幾十秒」的來源。
+  </p>
+  <p>
+    <strong>patch 做的事</strong>：送出去之前先看一眼 <code>valid_mode</code>。
+    還是 0 就別送了，直接自己標記「這一幀完成」讓合成器繼續跑下去。三行：
+  </p>
+  <pre><code>if (!dcp->valid_mode) {
+        schedule_work(&amp;dcp->vblank_wq);
+        return;
+}</code></pre>
+  <p class="muted">
+    注意這不是「修好顯示」，是「不要因為顯示還沒好就把整台機器拖住」。
+    差別很重要 —— 它解釋了為什麼套完之後不卡了，但畫面依然沒出來。
+  </p>
+</div>
+
+<div class="stage key">
+  <h3>第二塊 · <code>atc.c</code> —— 為什麼熱插不會亮、冷插卻會</h3>
+  <p>
+    USB-C 那條線裡有幾組高速通道，<strong>同一組實體線路可以拿來跑 USB3，也可以拿來跑 DisplayPort</strong>，
+    兩者互斥。要從 USB3 切成 DP，得先把負責 USB3 的那個電路（叫 <strong>PIPE handler</strong>）停下來，
+    否則就是在一條還在通電的線路底下重新接線 —— 硬體會保護性地退回只剩 USB2，DP 根本起不來。
+  </p>
+  <p>
+    <strong>這就是冷插會動、熱插不會動的原因。</strong>
+    開機時就插著的話，那時 USB3 還沒起來，沒有東西要停；
+    熱插的時候 USB3 已經在跑了，才會撞到。
+  </p>
+  <p>
+    原本的程式碼發現「PIPE handler 還開著」時，只是印一個警告然後硬切
+    —— 那正是你在 dmesg 看到的：
+  </p>
+  <pre><code>WARNING: drivers/phy/apple/atc.c:2328 at atcphy_mux_set+0x138/0x230 [phy_apple_atc]</code></pre>
+  <p>
+    <strong>patch 做的事</strong>：把那個「只抱怨不處理」換成真的去處理 ——
+    切換前先把 PIPE handler 停到一個空的 dummy PHY 上，讓線路安靜下來，再切模式。
+    USB3 會暫時斷掉（等 dwc3 重新設定回來），USB2 不受影響。
+  </p>
+  <p class="muted">
+    驗證方式：<code>strings phy-apple-atc.ko | grep 'park PIPE handler'</code>。
+    有這個字串才代表模組是打過 patch 的（見下面「踩到的坑」）。
+  </p>
+</div>
+
+
+<h3>剩下的問題：一個卡死的 page flip</h3>
+
+<p>套完 #622 之後，熱插拔的失敗鏈條變成這樣：</p>
+
+<ol>
+  <li>拔線那一刻，DCP 吞掉一張 page flip，<strong>永遠不回報完成</strong></li>
+  <li>aquamarine（Hyprland 的 DRM 後端）那張 flip 就一直掛在「等待中」</li>
+  <li>之後<strong>每一次</strong> commit 都被它自己的保護擋掉 ——
+    <code>hyprland.log</code> 裡 <code>Cannot commit when a page-flip is awaiting</code> 出現了 <strong>14 次</strong></li>
+  <li>連手動用 <code>wlr-randr</code> 強制 modeset 都救不回來：
+    kernel 那邊確實跑完了（<code>set_digital_out_mode finished:8162</code>），
+    但畫面 commit 進不去</li>
+</ol>
+
+<p>
+  關鍵是 <strong>Hyprland 並不是「沒反應」</strong>。它的 log 顯示它有偵測到、有列出 16 個模式、也有嘗試 modeset：
+</p>
+<pre><code>drm: Connector DP-1 connected
+drm: Modesetting DP-1 with 1920x1080@60.00Hz
+ERR: drm: Cannot commit when a page-flip is awaiting</code></pre>
+
+<table>
+<thead><tr><th>層</th><th>可以說是它的問題的地方</th></tr></thead>
+<tbody>
+<tr><td><strong>kernel / driver</strong></td>
+  <td>DCP 收下 page flip 卻從不送完成事件。#622 讓「等待」不再卡 10 秒，
+    但遺失的 flip 在合成器那邊的帳沒有被清掉</td></tr>
+<tr><td><strong>Hyprland / aquamarine</strong></td>
+  <td>一旦有 flip 卡住，就再也不接受任何 commit，<strong>沒有逾時、沒有復原路徑</strong>。
+    硬體丟事件是常態，合成器不該因此永久鎖死一個輸出</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  兩邊都有道理，所以先別急著替誰定罪 —— 這正是值得寫進 issue 讓真正懂的人判斷的東西。
+</p>
+
+
+<h2 id="h4"><span class="n">§4</span>踩過的坑</h2>
+<h3>這一輪踩到的四個坑</h3>
+
+<div class="callout stop">
+  <strong>1 · 插錯孔，什麼都不會發生。</strong>
+  只有 <strong>USB-C Left Front</strong> 有 DP（<code>/sys/class/typec/port1</code>，i2c 位址 <code>0-003f</code>）。
+  對照表可以自己讀出來：
+  <pre style="margin:10px 0"><code>for c in /proc/device-tree/soc/*/*/connector; do
+  echo "$(basename $(dirname $c)): $(tr -d '\0' &lt; $c/label)"
+done</code></pre>
+  結果是 <code>usb-pd@38 = Left Back</code>、<code>usb-pd@3f = Left Front</code>、<code>usb-pd@3b = Right</code>。
+  插對之後，<code>ls /sys/class/typec/port*-partner</code> 會出現 <code>port1-partner</code>。
+</div>
+
+<div class="callout stop">
+  <strong>2 · 單獨跑 <code>make install</code> 會把 <code>/boot/dtb</code> 指歪。</strong>
+  這次真的發生了：symlink 變成指向不存在的 <code>/boot/dtb-7.1.13-fairydust+</code>
+  （實際檔案在 <code>/boot/dtbs/7.1.13-fairydust+</code>），然後 <code>update-m1n1</code> 拿著這個斷掉的路徑去刷。
+  原因見<a href="#h1">本頁 §1</a> 的那個警告。<br><br>
+  <strong>只改模組的話根本不需要 <code>make install</code></strong>，用這組就好，順便繞開整個問題：
+  <pre style="margin:10px 0"><code>sudo make INSTALL_MOD_STRIP=1 modules_install
+sudo dracut -f --kver 7.1.13-fairydust+
+readlink -f /boot/dtb        # 確認還是 /boot/dtbs/7.1.13-fairydust+</code></pre>
+</div>
+
+<div class="callout stop">
+  <strong>3 · patch 被退掉了卻沒發現，白測一輪。</strong>
+  中途跑過 <code>git apply -R</code>，之後 build 出來的模組其實沒有 patch，
+  測試結果自然跟沒改一樣。<strong>安裝前一定要驗證二進位檔本身：</strong>
+  <pre style="margin:10px 0"><code>strings drivers/phy/apple/phy-apple-atc.ko | grep 'park PIPE handler'</code></pre>
+  光看 <code>git diff</code> 或檔案時間戳不夠 —— 要確認<strong>編出來的東西</strong>裡面有。
+</div>
+
+<div class="callout">
+  <strong>4 · <code>hyprctl dispatch</code> 在 Lua 設定下要換寫法。</strong>
+  <code>hyprctl dispatch dpms off DP-1</code> 會被 Lua 剖析器拒絕。
+  這次繞過去的辦法是直接用 <code>wlr-randr</code>（走 Wayland 協定，不經過 Hyprland 的設定層）：
+  <pre style="margin:10px 0"><code>wlr-randr --output DP-1 --off &amp;&amp; sleep 1 &amp;&amp; wlr-randr --output DP-1 --on</code></pre>
+  （這次它成功逼出了 modeset，但因為上面那個 page flip 卡死，畫面還是沒回來。）
+</div>
+
+
+<h2 id="h5"><span class="n">§5</span>開機鏈：每個角色在做什麼</h2>
+
+<p>
+  這一節是階段 0 的前置知識。你要多裝一顆 kernel、要能在兩顆之間切換、
+  之後還要讓 m1n1 換個模式跑 —— 這些都建立在「開機時到底發生什麼」之上。
+</p>
+
+<div class="embed">
+  <div class="bar"><b>圖 5 · 開機鏈</b><a href="05-boot.html" target="_blank">在新分頁開啟，可全螢幕操作 ↗</a></div>
+  <iframe src="05-boot.html" loading="lazy" title="圖 5 · 開機鏈"></iframe>
+  <p class="muted" style="font-size:13.5px">上排是平常開機的五棒，下排是 m1n1 的另一種用法 —— 分歧點就在第二棒。</p>
+</div>
+
+<h3>五棒接力</h3>
+
+<table>
+<thead><tr><th>角色</th><th>做什麼</th></tr></thead>
+<tbody>
+<tr><td><strong>iBoot</strong></td><td>Apple 的韌體。驗證簽章後交棒，你完全碰不到</td></tr>
+<tr><td><strong>m1n1</strong></td><td>初始化硬體、產生 device tree。<strong>Asahi 安裝時就放進 stub 分割區了</strong></td></tr>
+<tr><td><strong>U-Boot</strong></td><td>把 Apple 的特殊開機環境轉成標準的 Linux 開機介面</td></tr>
+<tr><td><strong>GRUB</strong></td><td>讀開機項目清單、顯示選單、把你選的那顆 kernel 載進記憶體</td></tr>
+<tr><td><strong>Linux kernel</strong></td><td>掛載 rootfs、載入模組，最後交給 systemd → Hyprland</td></tr>
+</tbody>
+</table>
+
+<h3>kernel 是一組帶版本後綴的檔案</h3>
+
+<p>所以多顆可以並存 —— 裝新的不會蓋掉舊的：</p>
+
+<pre><code>/boot/vmlinuz-&lt;版本&gt;              # kernel 本體
+/boot/initramfs-&lt;版本&gt;.img        # 開機用的暫時根目錄
+/boot/dtb-&lt;版本&gt;/                 # device tree（Asahi 必要，別忘了裝）
+/lib/modules/&lt;版本&gt;/              # 驅動模組</code></pre>
+
+<h3>那份「有哪些 kernel 可以選」的清單</h3>
+
+<p>Fedora 用 BLS（Boot Loader Specification）：一顆 kernel 一個設定檔。</p>
+
+<pre><code>ls /boot/loader/entries/     # 每個 .conf 就是選單上的一項
+sudo grubby --info=ALL       # 人話版：列出每一項的 kernel / initrd / 參數</code></pre>
+
+<p class="muted">
+  裝完 fairydust 之後這裡會多一項 —— 那是「有沒有裝成功」最直接的驗證，比重開機試快得多。
+</p>
+
+<div class="callout">
+  <strong>動手 build 之前，先讓 GRUB 選單顯示出來。</strong>
+  Asahi 預設會跳過選單（為了開機快）。編輯 <code>/etc/default/grub</code>，
+  把 <code>GRUB_TIMEOUT</code> 設成 5，<strong>同時確認 <code>GRUB_TIMEOUT_STYLE=menu</code></strong>
+  —— 只改 timeout 而 style 還是 <code>hidden</code> 的話選單照樣不會出現。
+  然後 <code>sudo grub2-mkconfig -o /boot/grub2/grub.cfg</code>。<br><br>
+  不先做這件事，新 kernel 開不起來時你會找不到地方選回舊的。
+</div>
+
+<h3>m1n1 不是要新裝的東西</h3>
+
+<p>
+  它<strong>現在就在你的開機鏈裡</strong>，每次開機都在跑 —— 沒有它 Asahi 根本開不起來。
+  之後要做的不是安裝新程式，而是讓同一支程式換個模式：
+</p>
+
+<table>
+<thead><tr><th>模式</th><th>做什麼</th></tr></thead>
+<tbody>
+<tr><td><strong>平常</strong>（你現在）</td><td>初始化硬體 → 交棒給 U-Boot → 一路到 Linux</td></tr>
+<tr><td><strong>hypervisor</strong>（之後）</td><td>進 EL2、攔截 MMIO、把 macOS 當 guest 開起來</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  實務上會有<strong>兩份 m1n1 並存</strong>：stub 裡那份繼續負責開你的 Asahi；
+  hypervisor 用的是你自己 build 的新版（官方文件強調「每次都先 chainload working tree 的 m1n1」）。
+  兩份互不干擾，正常開機流程不受影響。
+</p>
+
+
+<h2 id="h6"><span class="n">§6</span>名詞表</h2>
+
+<p>
+  這個專案橫跨磁碟、開機、kernel、晶片四個層次，名詞會一直冒出來。
+  這裡只收<strong>會重複出現</strong>的，每條一句話，附上「跟這個專案有什麼關係」。
+</p>
+
+<h3>磁碟與分割</h3>
+<table>
+<thead><tr><th>名詞</th><th>是什麼</th><th>跟你的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>分割區</strong></td><td>硬碟上切出來的一塊空間，大小固定</td><td>—</td></tr>
+<tr><td><strong>APFS container</strong></td><td>分割區裡的一大塊<strong>硬碟</strong>空間，裡面的 volume 共用它、不用事先切死大小</td><td>裝第二份 macOS 時會建一個新的</td></tr>
+<tr><td><strong>volume</strong></td><td>container 裡的一個檔案系統</td><td>—</td></tr>
+<tr><td><strong>volume group</strong></td><td>System + Data + Preboot + Recovery 的組合 <strong>＝ 一個 macOS 安裝</strong></td><td>hypervisor 要的 14.8.3 需要一整組，不是單一 volume</td></tr>
+<tr><td><strong>Preboot</strong></td><td>存放「主系統掛載前就需要的東西」的 volume，<strong>每個安裝一個 UUID 資料夾</strong></td><td>韌體、開機政策、<code>kernelcache</code> 都在這裡 —— 你要挖 kernelcache 就是去這</td></tr>
+<tr><td><strong>stub</strong></td><td>Asahi 安裝時建的約 2.5GB 迷你 macOS，<strong>有殼沒肉、不能開機進去用</strong></td><td>裡面有韌體 + m1n1 + 開機政策。<strong>刪掉 Asahi 就開不了機</strong></td></tr>
+<tr><td><strong>ESP</strong>（EFI 分割區）</td><td>FAT32 分割區，掛在 <code>/boot/efi</code></td><td>放 GRUB 和 <code>vendorfw/</code>。<strong>kernel 不在這裡</strong>，在 <code>/boot</code></td></tr>
+</tbody>
+</table>
+
+<h3>開機鏈</h3>
+<table>
+<thead><tr><th>名詞</th><th>是什麼</th><th>跟你的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>Boot ROM</strong></td><td>燒在矽晶片裡的第一棒，永遠不可改</td><td>信任鏈的根，你碰不到</td></tr>
+<tr><td><strong>iBoot 第一階段</strong></td><td>Apple 韌體，<strong>全機共用一份</strong>。初始化記憶體、儲存、DFU</td><td>—</td></tr>
+<tr><td><strong>iBoot 第二階段</strong></td><td><strong>每個 OS 安裝各自一份</strong>。載入該 OS 的韌體組、執行它的安全政策</td><td>這就是為什麼 Asahi 能降安全等級而 macOS 26 不受影響</td></tr>
+<tr><td><strong>m1n1</strong></td><td>Asahi 的開機載入器，被註冊成 stub 那個「OS 的 kernel」</td><td><strong>現在就在你的開機鏈裡</strong>。hypervisor 是它的另一種模式，不是新裝的東西</td></tr>
+<tr><td><strong>U-Boot</strong></td><td>把 Apple 的特殊環境轉成標準 Linux 開機介面（內含 UEFI 實作）</td><td>—</td></tr>
+<tr><td><strong>GRUB</strong></td><td>讀開機項目清單、顯示選單、載入你選的 kernel</td><td><strong>動手前先讓它顯示出來</strong>，否則新 kernel 開不起來沒地方退回</td></tr>
+<tr><td><strong>DFU 模式</strong></td><td>用另一台 Mac 重刷韌體的救援模式，分兩種：
+  <strong>revive</strong> 只重刷韌體、<strong>保留資料</strong>；<strong>restore</strong> 才會清空整顆硬碟</td>
+  <td>最後的安全網。先試 revive，restore 是最後手段（所以還是要備份）</td></tr>
+<tr><td><strong>ADT</strong></td><td>Apple 自己的 device tree 格式，由 iBoot 提供</td><td>m1n1 讀它來認機型、抓執行期數值</td></tr>
+</tbody>
+</table>
+
+<h3>kernel 與檔案</h3>
+<table>
+<thead><tr><th>名詞</th><th>是什麼</th><th>跟你的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>vmlinuz</strong></td><td>編譯好的 kernel 本體（壓縮過）</td><td>在 <code>/boot/vmlinuz-&lt;版本&gt;</code></td></tr>
+<tr><td><strong>initramfs</strong></td><td>開機用的暫時根目錄，讓 kernel 有辦法掛載真正的 rootfs</td><td>必須在 target 機器上產生，不能在 macOS 上做</td></tr>
+<tr><td><strong>device tree</strong></td><td>一份硬體清單，告訴 kernel「有哪些區塊、在哪個位址、用哪條中斷」</td><td>ARM 的硬體無法自我介紹，所以必須有人寫下來。<strong>DTS 就是逆向成果的存放處</strong></td></tr>
+<tr><td><strong>DTB</strong></td><td>device tree 編譯後的二進位檔</td><td><strong>裝 kernel 一定要連 DTB 一起裝</strong>，否則新 driver 永遠不會被實體化</td></tr>
+<tr><td><strong>BLS / loader entries</strong></td><td><code>/boot/loader/entries/</code>，一顆 kernel 一個 <code>.conf</code></td><td>裝完看這裡有沒有多一項 = 最快的驗證</td></tr>
+<tr><td><strong><code>.config</code></strong></td><td>kernel 的編譯設定檔，幾千個選項</td><td><strong>一定要從 <code>/boot/config-$(uname -r)</code> 複製當起點</strong></td></tr>
+<tr><td><strong>16K page</strong></td><td><strong>記憶體</strong>分頁大小。TLB 涵蓋範圍大四倍，Apple 硬體照這個設計</td><td>編錯成 4K 會壞掉 —— 從現有 config 起手就自動正確</td></tr>
+<tr><td><strong>fairydust</strong></td><td>Asahi 的實驗分支，含 USB-C DP 輸出的程式碼</td><td>官方明說「strictly as-is」，只給開發者、不提供支援。
+  <strong>但 USB-C 出圖只有這裡有</strong> —— #601 的結論就是「換到這個分支就好了」</td></tr>
+</tbody>
+</table>
+
+<h3>晶片內部</h3>
+<table>
+<thead><tr><th>名詞</th><th>是什麼</th><th>跟你的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>AP</strong></td><td>Application Processor —— 跑作業系統的主 CPU 核心</td><td>「AP call」＝ 協處理器<strong>反過來</strong>呼叫作業系統</td></tr>
+<tr><td><strong>協處理器</strong></td><td>SoC 裡的其他 CPU，各自跑自己的韌體</td><td>一顆 M1 Pro 裡有十幾顆</td></tr>
+<tr><td><strong>DCP</strong></td><td>顯示協處理器。<strong>在 Mac 裡</strong>，跑 Apple 韌體，實際操作顯示硬體</td><td><strong>斷點 2 的對話對象</strong>。你只能透過 mailbox 跟它講話</td></tr>
+<tr><td><strong>A13</strong></td><td><strong>在 Studio Display 裡</strong>的一整顆 SoC，管面板、hub、攝影機</td><td>斷點 2 要叫醒的是<strong>它</strong>，但做這件事的是 DCP，不是你</td></tr>
+<tr><td><strong>atcphy</strong></td><td>Type-C PHY，把訊號送上線。driver 直接讀寫它的暫存器</td><td><strong>斷點 1 的位置</strong>（<code>phy/apple/atc.c</code>）。
+  stable kernel 沒有 DP 這條路，fairydust 有</td></tr>
+<tr><td><strong>tipd</strong></td><td>USB-PD 控制器，負責協商模式與供電</td><td>決定協商到 DP Alt Mode 還是 TB</td></tr>
+<tr><td><strong>ACIO</strong></td><td>Apple Converged I/O —— Thunderbolt 那組硬體（含 Cortex-M3）</td><td>路線 B 的核心，Sven 的 22 個 patch 在處理</td></tr>
+<tr><td><strong>RTKit</strong></td><td>Apple 協處理器共用的通訊協定</td><td>已逆向完成，多個 driver 共用</td></tr>
+<tr><td><strong>DART</strong></td><td>Apple 的 IOMMU（記憶體存取保護）</td><td>已上游，16K 粒度</td></tr>
+<tr><td><strong>mailbox / AP call</strong></td><td>AP 與協處理器之間的雙向訊息機制</td><td><strong>兩邊都能發起</strong>。call 20 是 DCP 問你，不是你問它</td></tr>
+</tbody>
+</table>
+
+<h3>「韌體」的三種意思</h3>
+<table>
+<thead><tr><th>種類</th><th>存在哪</th><th>例子</th></tr></thead>
+<tbody>
+<tr><td><strong>燒在矽晶片裡</strong></td><td>不可改，永久</td><td>Boot ROM</td></tr>
+<tr><td><strong>裝置自帶</strong></td><td>裝置自己的快閃記憶體，可更新但持久</td><td><strong>Studio Display 的 A13</strong>、SSD 控制器</td></tr>
+<tr><td><strong>開機時載入</strong></td><td>平常是磁碟上的檔案，<strong>每次開機載進協處理器</strong></td><td><strong>DCP</strong>、WiFi、ACIO</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  第三種是 Asahi 要從你的 macOS 抓出來的那種，也是「OS-paired firmware」的意思 ——
+  <strong>你的 DCP 韌體來自 macOS 26</strong>，跟其他回報者不同。
+</p>
+
+<h3>這個專案的專用說法</h3>
+<table>
+<thead><tr><th>名詞</th><th>意思</th></tr></thead>
+<tbody>
+<tr><td><strong>t8103 / t600x</strong></td><td>SoC 代號。t8103 ＝ 原版 M1（你的 mini）；t600x ＝ M1 Pro/Max（你的 MBP）</td></tr>
+<tr><td><strong>target</strong></td><td>被觀測的機器。<strong>螢幕插這台</strong>，m1n1 和 macOS guest 都在這台</td></tr>
+<tr><td><strong>host</strong></td><td>旁觀者。只跑 Python、收資料、印 trace，不影響 target</td></tr>
+<tr><td><strong>DP Alt Mode</strong></td><td>把 Type-C 的實體通道直接改接成 DisplayPort。<strong>不是降級版的 TB</strong>，是另一套協定</td></tr>
+<tr><td><strong>DSC</strong></td><td>Display Stream Compression，顯示串流壓縮。頻寬不夠時靠它擠出高解析度</td></tr>
+<tr><td><strong>斷點 1 / 斷點 2</strong></td><td>斷點 1 ＝ atcphy 切不進 DP 模式
+  （<strong>已解：換 fairydust</strong>，#601 closed）；斷點 2 ＝ DCP 的 call 20 沒人會回
+  （<strong>未解</strong>，#579 open）。舊版本頁面稱它們為 Bug 1 / Bug 2</td></tr>
+</tbody>
+</table>
+
+
+<h2 id="h7"><span class="n">§7</span>連結索引</h2>
+
+<h3>兩個斷點（狀態為 2026-09-23 查證）</h3>
+<ul>
+  <li><a href="https://github.com/AsahiLinux/linux/issues/601">#601 —— M1 Pro <code>atcphy_mux_set</code> / Failed to lock pipehandler</a>
+    —— <strong>closed（2026-09-07，completed）</strong>。
+    <span class="muted">同型機（<code>MacBookPro18,3</code>）回報者換到 fairydust 後 USB-C 螢幕點亮；
+    結論是 stable kernel 的功能缺口，不是 bug。留言裡有完整的 build 步驟與 config 符號清單。</span></li>
+  <li><a href="https://github.com/AsahiLinux/linux/issues/579">#579 —— Studio Display unhandled AP call 20</a>
+    —— <strong>open，4 則討論</strong>。
+    <span class="muted">2026-08-24 由 M2 13"（t8112）回報；thejamescollins 在 M1 Max 16"（t6001）重現，
+    並在同機用 USB-C→HDMI 轉接頭跑到 4096x2160@60；chadmed 要求的
+    「full-spec 非 Thunderbolt USB-C 線」測試<strong>還沒有人做</strong>。</span></li>
+</ul>
+
+<h3>相關 PR（都沒 merge）</h3>
+<ul>
+  <li><a href="https://github.com/AsahiLinux/linux/pull/622">#622 —— Fix external display hotplug on DP alt mode</a>
+    —— closed。<span class="muted">關閉理由原文：「developed with LLM assistance (see the Assisted-by: trailers),
+    which the Asahi Generative AI Policy forbids」。程式碼你自己機器上要用沒問題，但不能當成自己的成果送上游。</span></li>
+  <li><a href="https://github.com/AsahiLinux/linux/pull/503">#503 —— Fix/atcphy pipehandler</a>
+    —— 仍 open，零討論</li>
+  <li><a href="https://github.com/AsahiLinux/linux/pull/476">#476 —— dts: Enable dp-altmode for M1 Pro/Max MacBook Pro</a>
+    —— closed 未 merge。<strong>已經不需要了</strong>：
+    <span class="muted">fairydust 的 <code>t600x-j314-j316.dtsi</code> 本身就
+    <code>#define ENABLE_DCPEXT_TYPEC</code> 並接好了 <code>typec1</code>。</span></li>
+</ul>
+
+<h3>工具與現成方案</h3>
+<ul>
+  <li><a href="https://github.com/bharambetejas/asahi-fairydust-display">asahi-fairydust-display</a> —— Fedora Asahi 的自動化 build</li>
+  <li><a href="https://github.com/OliRafa/omarchy-fairydust-kernel">omarchy-fairydust-kernel</a> —— 含 #622 的 <code>-dp622</code> target（Arch，可參考）</li>
+  <li><a href="https://gist.github.com/flightmansam/3e9a88a269e9a5f8e87489d9912d9432">Studio Display 的 HDMI 轉接鏈</a> —— 過渡方案，但只有 4K、預設無音訊</li>
+  <li><a href="https://github.com/malik-na/omadora">malik-na/omadora</a> —— 你 MBP 上的環境（Fedora Asahi Remix + Hyprland），內有 External monitor discussion</li>
+</ul>
+
+<h3>官方文件</h3>
+<ul>
+  <li><a href="https://asahilinux.org/docs/sw/m1n1-hypervisor/">Running macOS under the m1n1 hypervisor</a></li>
+  <li><a href="https://asahilinux.org/docs/sw/m1n1-user-guide/">m1n1 User Guide</a></li>
+  <li><a href="https://asahilinux.org/docs/platform/feature-support/m1/">M1 Series Feature Support</a></li>
+  <li><a href="https://asahilinux.org/contribute/">Contribute</a>（三份政策的入口）</li>
+  <li><a href="https://asahilinux.org/llm-policy/">Generative AI Policy</a></li>
+  <li><a href="https://discussion.fedoraproject.org/t/switch-to-the-kernel-16k-variant/87711">kernel-16k 討論</a></li>
+</ul>
+
+
+
+<footer>
+  M1 Pro 外接螢幕專案 ｜ 這份文件只寫給自己看，所以直接、不客套。<br>
+  <a href="index.html">入口</a> ·
+  <a href="handbook.html">手冊</a> ·
+  <a href="journal.html">日誌</a> ·
+  <a href="plan.html">計畫</a> ·
+  <a href="https://github.com/AndyWeiBoan/asahi-dp-altmode">GitHub</a>
+</footer>
+
+</main>
+</div>
+</div>
+<script src="doc.js"></script>
+</body>
+</html>

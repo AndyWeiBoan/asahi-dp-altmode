@@ -15,16 +15,28 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 
 ## 內容
 
+文字分四份，依「多久會看一次」拆開：
+
+| 檔案 | 內容 | 什麼時候看 |
+|---|---|---|
+| `html/index.html` | **入口** —— 現在的狀態、下一步、導航 | 每次打開 |
+| `html/handbook.html` | **手冊** —— 操作、診斷、這台機器的硬事實、踩過的坑、開機鏈、名詞表、連結索引 | 卡住時查 |
+| `html/journal.html` | **日誌** —— 每次動手記一筆 | 寫的時候，偶爾回頭找線索 |
+| `html/plan.html` | **計畫** —— 大方向、兩個斷點、六階段學習階梯、m1n1 雙機 trace、材料清單、規矩 | 一個月一次 |
+
+六張圖：
+
 | 檔案 | 內容 |
 |---|---|
-| `html/index.html` | 計畫書本體（11 節，含名詞表：大方向、遠中近目標、完整步驟、材料清單⋯⋯） |
-| `html/01-stack.html` | 圖 1 · 技術堆疊 —— 訊號經過哪些層，兩個 bug 卡在哪 |
+| `html/01-stack.html` | 圖 1 · 技術堆疊 —— 訊號經過哪些層，兩個斷點卡在哪 |
 | `html/02-ladder.html` | 圖 2 · 學習階梯 —— 六個階段與近／中／遠程目標 |
 | `html/03-m1n1.html` | 圖 3 · 角色分配 —— 哪台是 target、哪台是 host |
 | `html/04-phases.html` | 圖 4 · 兩個階段 —— Python 找答案，C 寫進 kernel |
 | `html/05-boot.html` | 圖 5 · 開機鏈 —— iBoot → m1n1 → U-Boot → GRUB → Linux |
 | `html/06-sides.html` | 圖 6 · Mac vs 螢幕 —— 兩邊各有一顆 Apple 處理器，各自管什麼 |
 | `spec/*.json` | 六張圖的原始碼（archify 規格），要改圖改這裡 |
+
+四份文字頁共用 `html/doc.css` 和 `html/doc.js`；六張圖是 archify 產生的自足檔案，不吃那兩個。
 
 圖支援深／淺色、縮放、搜尋與引導視角，建議全螢幕開啟。
 
@@ -54,7 +66,7 @@ Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https
 > 並重刷 m1n1 —— fairydust kernel 會帶著官方 DTB 開機，外接螢幕安靜地不再亮。
 > 修法：`sudo ln -sfn /boot/dtbs/<fairydust版本> /boot/dtb && sudo update-m1n1`。
 
-細節見計畫書 §3 階段 0 與 §9。
+細節見**手冊 §1 操作**；為什麼要做這一步見**計畫 §3**。
 
 ## 實測紀錄
 
@@ -63,8 +75,8 @@ Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https
 （`flip_done timed out` 從 2 次變 0 次、`atcphy_mux_set` WARNING 消失）。
 剩下的卡點在合成器：`Cannot commit when a page-flip is awaiting`。
 
-完整過程、#622 兩塊改動的白話解釋、診斷指令、以及踩到的四個坑，見計畫書 **§3.5**；
-每次動手的流水帳（做了什麼、發現什麼、下次從哪接）記在 **§12 日誌**。
+完整過程與判斷記在 **日誌**；#622 兩塊改動的白話解釋、診斷工具對照表、踩到的四個坑
+整理在 **手冊**。
 
 ## 重新產生圖
 
@@ -86,6 +98,9 @@ node ~/.claude/skills/archify/bin/archify.mjs \
 
 本文件在與 Claude 的對話中整理而成，內容為**公開資料的彙整與推論**，不含任何 m1n1 trace 的解讀。
 
-Asahi Linux 的 [Generative AI Policy](https://asahilinux.org/llm-policy/) 禁止 AI 協助的實質貢獻，
-其中明確點名「用 LLM 解讀 m1n1 hypervisor 的 trace」。
-若要將成果貢獻上游，trace 的判讀與 driver 程式碼必須自行完成 —— 詳見計畫書 §6。
+**這個專案不打算貢獻到 Asahi 上游**，目標是把自己這台機器修好、順便把「硬體到 kernel
+之間那段空白」補起來。所以 [Generative AI Policy](https://asahilinux.org/llm-policy/)
+對這裡不構成限制。
+
+仍然守的一條線：**不把 m1n1 hypervisor 的 trace 內容貼進 LLM**。那是政策點名過的用法，
+而且是單向門 —— 哪天改變主意要送 PR，那份成果就得重新獨立產出。詳見計畫 §6。

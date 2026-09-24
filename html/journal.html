@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日誌</title>
+<link rel="stylesheet" href="doc.css">
+</head>
+<body>
+<button class="themebtn" id="tt" type="button">深色</button>
+<div class="wrap">
+
+<header>
+  <h1>日誌</h1>
+  <p class="lede">每次動手記一筆。過程、量到的數字、判斷、以及做錯的地方。</p>
+</header>
+
+<div class="layout">
+<nav class="toc">
+<details open>
+<summary>目錄 ▾</summary>
+<h4>頁面</h4>
+<ul class="pg">
+  <li><a href="index.html">入口<small>現況與下一步</small></a></li>
+  <li><a href="handbook.html">手冊<small>操作・診斷・坑・名詞</small></a></li>
+  <li><a href="journal.html" class="on">日誌<small>每次動手記一筆</small></a></li>
+  <li><a href="plan.html">計畫<small>目標・階梯・遠期</small></a></li>
+</ul>
+<h4>圖</h4>
+<ul class="pg">
+  <li><a href="01-stack.html">圖 1 · 技術堆疊<small>兩個斷點卡在哪一層</small></a></li>
+  <li><a href="02-ladder.html">圖 2 · 學習階梯<small>六個階段與遠中近目標</small></a></li>
+  <li><a href="03-m1n1.html">圖 3 · 角色分配<small>哪台 target、哪台 host</small></a></li>
+  <li><a href="04-phases.html">圖 4 · 兩個階段<small>Python 找答案，C 寫進 kernel</small></a></li>
+  <li><a href="05-boot.html">圖 5 · 開機鏈<small>iBoot → m1n1 → U-Boot → GRUB</small></a></li>
+  <li><a href="06-sides.html">圖 6 · Mac vs 螢幕<small>哪些東西在哪一邊</small></a></li>
+</ul>
+<h4>本頁章節</h4>
+<ul id="toclist">
+  <li><a href="#j1">§1　日誌</a></li>
+</ul>
+</details>
+</nav>
+<main>
+
+<h2 id="j1"><span class="n">§1</span>日誌</h2>
+<p class="muted">
+  每次動手記一筆：做了什麼、量到什麼、發現什麼、哪裡做得不好、下次從哪裡接。最新的在最上面。<br>
+  技術細節不寫在這裡 —— 那些整理進 <a href="handbook.html">手冊</a>，這裡只留當下的過程和判斷。
+</p>
+
+
+<div class="stage key">
+<h3>2026-09-23 晚 ～ 09-24 凌晨 · 第一次動手</h3>
+<p class="muted">從「這份計畫書該怎麼修」開始，結果一路做到外接螢幕點亮。</p>
+
+<h4>一句話結論</h4>
+
+<div class="callout">
+  <strong>冷插完全正常；熱插拔畫面回不來，但套了 <a href="https://github.com/AsahiLinux/linux/pull/622">#622</a> 之後不會再卡住整台電腦。</strong>
+  剩下的卡點在合成器：一個永遠等不到完成的 page flip 把 aquamarine 鎖死了。
+</div>
+
+
+<h4>做了什麼</h4>
+<ol>
+  <li><strong>查證計畫書的前提</strong>，發現 #601 已在 2026-09-07 結案 —— 原本「兩個 bug、先解 Bug 1」的框架不成立了。
+    整份計畫書依此改寫，六張圖用 archify 重新產生</li>
+  <li><strong>讀完 build 腳本</strong>（600 行）。確認 kernel 原始碼是執行時從上游 clone、
+    <code>.config</code> 抄本機的、README 講的第 9 步在 <code>main()</code> 裡是註解掉的</li>
+  <li><strong>跑 build。</strong>第一次 <code>--filter=blob:none</code> 的 clone 空等三分鐘零 bytes（GitHub 在算 pack），
+    改用 <code>--depth 1</code> 才動。編譯本身 60～90 分鐘</li>
+  <li><strong>開機設定</strong>：<code>asahi-bless --set-boot fedora</code>（預設不再開進 macOS）、
+    <code>grubby --set-default</code> 指到 fairydust、把 GRUB 選單叫回來</li>
+  <li><strong>第一次插螢幕沒反應</strong> —— 插到左<em>後</em>那孔了。查 device tree 的 connector label
+    才確認 DP 只在 <code>usb-pd@3f</code> = <strong>USB-C Left Front</strong></li>
+  <li><strong>換孔，亮了。</strong>MSI MAG161V，1920x1080@60，Hyprland 正常接手</li>
+  <li><strong>測熱插拔 → 不亮，而且整台卡住幾十秒</strong></li>
+  <li>診斷後找到 <a href="https://github.com/AsahiLinux/linux/pull/622">#622</a>，確認能乾淨套用到現在的 tree</li>
+  <li><strong>白做了一輪</strong>：中途跑過 <code>git apply -R</code> 把 patch 退掉卻沒發現，
+    裝上去的是沒 patch 的模組，測出來當然跟原本一樣</li>
+  <li>重套、<strong>驗證 <code>.ko</code> 裡真的有 patch 的字串</strong>、重裝、重測</li>
+  <li>結果：<strong>不卡了，但畫面還是回不來</strong>。追到 <code>hyprland.log</code> 才看清楚原因</li>
+</ol>
+
+<h4>量到的東西</h4>
+
+<table>
+<thead><tr><th>指標</th><th>#622 前</th><th>#622 後</th></tr></thead>
+<tbody>
+<tr><td>冷插（開機前就插著）會不會亮</td><td>✅ 會</td><td>✅ 會</td></tr>
+<tr><td><code>atcphy_mux_set</code> WARNING</td><td>有</td><td><strong>沒有了</strong></td></tr>
+<tr><td><code>flip_done timed out</code></td><td>2 次</td><td><strong>0 次</strong></td></tr>
+<tr><td><code>AFK[ep:28]: too many enabled services!</code></td><td>有</td><td><strong>沒有了</strong>，改成正常的 <code>new service DCPDPService on channel 17/19</code></td></tr>
+<tr><td>熱插拔後畫面回來</td><td>❌</td><td>❌ 還是不會</td></tr>
+<tr><td>熱插拔時整台卡住</td><td><strong>卡數十秒</strong></td><td><strong>不卡</strong></td></tr>
+</tbody>
+</table>
+
+<p>
+  也就是 <strong>#622 在 t600x 上確實有效</strong>，只是沒有把問題解完。
+  這是目前 #579 上沒有的資料點。
+</p>
+
+
+<h4>發現了什麼</h4>
+<ul>
+  <li><strong>斷點 1 對這台機器不存在。</strong>換到 fairydust 就有 USB-C DP 輸出，不用改任何程式碼</li>
+  <li><strong>DP 只有一個孔</strong>（左前），插錯孔完全沒有反應，而且不會有任何錯誤訊息</li>
+  <li><strong>#622 在 t600x 上有效但沒解完</strong>：WARNING 和 <code>flip_done timed out</code> 都消失、
+    不再卡住整台電腦，但熱插拔的畫面仍然回不來。量化數字見上面「量到的東西」</li>
+  <li><strong>真正的卡點在合成器</strong>：一張永遠等不到完成的 page flip，讓 aquamarine 之後拒絕所有 commit
+    （<code>Cannot commit when a page-flip is awaiting</code>，出現 14 次）。
+    Hyprland 不是沒反應 —— 它有偵測到、有列模式、有嘗試 modeset</li>
+  <li><strong>單獨跑 <code>make install</code> 會把 <code>/boot/dtb</code> 指歪</strong>，這次真的發生了。
+    只改模組的話根本不需要它</li>
+  <li><strong>驗證要驗二進位檔</strong>。<code>git diff</code> 和時間戳都可能騙人，
+    要 <code>strings *.ko | grep</code> 確認編出來的東西裡有</li>
+</ul>
+
+<h4>現在的狀態</h4>
+<table>
+<thead><tr><th>項目</th><th></th></tr></thead>
+<tbody>
+<tr><td>kernel</td><td><code>7.1.13-fairydust+</code>（含 patch 0001 + #622），官方 kernel 留在 GRUB 當退路</td></tr>
+<tr><td>冷插外接螢幕</td><td>✅ 開機前插左前孔就有畫面</td></tr>
+<tr><td>熱插拔</td><td>❌ 畫面回不來；至少不再卡住整台電腦</td></tr>
+<tr><td>Studio Display</td><td>還沒測過，目前全部是用 MSI MAG161V 做的</td></tr>
+<tr><td>迭代迴圈</td><td>✅ 改 C → <strong>38 秒</strong>增量編譯 → 裝模組 → 重開機測</td></tr>
+</tbody>
+</table>
+
+<h4>沒做到 / 做得不好的地方</h4>
+<ul>
+  <li>整晚幾乎都是「跑腳本、套別人的 patch、看結論」，<strong>沒有寫過一行 C，也沒碰過任何暫存器</strong>。
+    這不是計畫的問題 —— 階段 0 本來就不是學習關卡 —— 但要記得它不算數</li>
+  <li>#622 兩塊改動的<strong>原理當下沒搞懂</strong>，是事後才補寫進<a href="handbook.html#h3">手冊 §3</a> 的</li>
+  <li><code>git apply -R</code> 那一輪白測，浪費約 20 分鐘</li>
+</ul>
+
+<h4>明天要幹嘛</h4>
+<ol>
+  <li><strong>先一起寫一份學習計畫</strong>（不是由 Claude 單方面寫完丟過來）</li>
+  <li><strong>把兩個 patch 逐行看懂</strong> —— 0001（內建 HDMI resume，11 行，暖身用）和 #622（兩塊，42 行）</li>
+  <li><strong>討論熱插拔</strong>。重點不只是修好，是搞懂那些探測手段：
+    <code>udevadm monitor</code>、<code>/sys/class/drm</code>、<code>journalctl -k</code>、<code>hyprland.log</code>
+    各自在講哪一層，輸出怎麼讀</li>
+  <li>然後才動 <code>iomfb.c</code>。<strong>程式由自己寫</strong>，Claude 負責解釋機制、指路、讀結果、review</li>
+</ol>
+
+<div class="callout">
+  <strong>兩分鐘就能做、但還沒做的事</strong>：把 Studio Display 插上去冷開機一次。
+  到目前為止正主都還沒上場，很可能會看到 <code>acking unhandled call 20</code> ——
+  那是跟今天完全不同的一條線（斷點 2），先知道它長什麼樣，排優先順序會比較有依據。
+</div>
+</div>
+
+<footer>
+  最後更新 2026-09-23 ｜ 六張圖支援深色／淺色主題、縮放、搜尋與匯出，直接用瀏覽器開啟即可。<br>
+  issue / PR 狀態與 fairydust device tree 的內容於 2026-09-23 查證；
+  本頁的政策判讀是依據公開文件的推論，<strong>只有 Asahi 自己能認定</strong> —— 動手前先去問一次。
+</footer>
+
+
+<footer>
+  M1 Pro 外接螢幕專案 ｜ 這份文件只寫給自己看，所以直接、不客套。<br>
+  <a href="index.html">入口</a> ·
+  <a href="handbook.html">手冊</a> ·
+  <a href="journal.html">日誌</a> ·
+  <a href="plan.html">計畫</a> ·
+  <a href="https://github.com/AndyWeiBoan/asahi-dp-altmode">GitHub</a>
+</footer>
+
+</main>
+</div>
+</div>
+<script src="doc.js"></script>
+</body>
+</html>
