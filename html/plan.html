@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>計畫</title>
+<title>方向</title>
 <link rel="stylesheet" href="doc.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
 <div class="wrap">
 
 <header>
-  <h1>計畫</h1>
+  <h1>方向</h1>
   <p class="lede">目標、學習階梯、遠期的 m1n1 雙機 trace。不常看，但走偏的時候回來對一下。</p>
 </header>
 
@@ -28,7 +28,6 @@
   <li><a href="#p4">§4　兩個階段（Python / C）</a></li>
   <li><a href="#p5">§5　角色、機器與版本</a></li>
   <li><a href="#p6">§6　規矩</a></li>
-  <li><a href="#p7">§7　材料清單</a></li>
 </ul>
 </details>
 </nav>
@@ -219,15 +218,7 @@
     USB-C 出圖的程式碼還沒進正式 kernel，在 <code>fairydust</code> 分支上。
     <strong>不用重裝系統</strong> —— kernel 只是一個 package，你多裝一顆並存，開機時選。
   </p>
-  <ol>
-    <li>clone fairydust 分支</li>
-    <li><code>.config</code> <strong>一定要從現在的 <code>kernel-16k</code> config 起手</strong>。
-        Apple Silicon 上 16K pages 是必需的，這是最容易踩的坑</li>
-    <li>開啟 DP alt mode 相關選項，建議編成 module（方便用 <code>dmesg</code> 確認有沒有載到）</li>
-    <li>build kernel <strong>加 DTB</strong> —— Asahi 靠 device tree，別只裝 vmlinuz</li>
-    <li>確認 GRUB 選單會顯示（Asahi 預設會跳過），否則你沒地方選回舊 kernel</li>
-  </ol>
-  <p class="muted">操作細節（腳本做了什麼、它會動到哪些檔、更新後要檢查什麼）在 <a href="handbook.html#howto">手冊 §2</a>。</p>
+  <p class="muted">要滿足哪些條件、腳本做了什麼、更新後要檢查什麼 —— 全部在 <a href="handbook.html#howto">動手 §2.1</a>。</p>
 </div>
 <div class="stage">
   <h3>階段 0.5 · m1n1 proxy 的 Python REPL</h3>
@@ -491,62 +482,10 @@ MacBook Pro（host） ← 用內建螢幕看 trace</code></pre>
   別只貼 dmesg。
 </div>
 
-<h3>怎麼架起來</h3>
-
-<p>
-  這不是虛擬機。macOS 跑在 target <strong>真正的 Apple Silicon CPU</strong> 上，原生速度、真的硬體；
-  m1n1 待在 EL2，只把幾頁 MMIO 設成 trap，攔下來記錄再放行。macOS 本體<strong>不用改</strong>。
-  完整的角色分配見 <a href="03-m1n1.html">圖 3</a>。
+<p class="muted">
+  實際怎麼架（1TR 裡要打什麼、怎麼挖 kernelcache、host 那兩支 proxyclient 指令、
+  兩個終端機視窗各是誰）都是操作，放在 <a href="handbook.html#dualboot">動手 §2.5</a>。
 </p>
-
-<h3>在 target（Mac mini）的 1TR Recovery Terminal 裡（對測試 volume 做）</h3>
-<pre><code>bputil -nkcas          # 降安全模型
-csrutil disable        # 關 SIP
-nvram boot-args=-v
-kmutil configure-boot -c build/m1n1.bin --raw --entry-point 2048 \
-  --lowest-virtual-address 0 -v /Volumes/macOSTest</code></pre>
-
-<h3>取得 macOS kernel</h3>
-<p>在 target 上開進測試 volume，從這裡挖 <code>kernelcache</code>，用 <code>img4tool</code> 解出 Mach-O：</p>
-<pre><code>/System/Volumes/Preboot/[UUID]/boot/[hash]/System/Library/Caches/com.apple.kernelcaches/</code></pre>
-
-<h3>在 host（MacBook Pro）上跑</h3>
-<p class="muted" style="margin-top:0">
-  這兩支都是 proxyclient 工具，<strong>跑在 host 上</strong>，隔著 USB 線指揮 target。
-</p>
-<pre><code>export M1N1DEVICE=/dev/ttyACM0   # host 是 Linux；host 若是 macOS 則為 /dev/cu.usbmodemP_01
-
-# 每次都先 chainload working tree 的 m1n1
-python3 proxyclient/tools/chainload.py build/m1n1.macho
-
-# 掛著 DCP tracer 開 macOS
-python3 proxyclient/tools/run_guest.py \
-  -m proxyclient/hv/trace_dcp.py \
-  path/to/kernelcache.macho \
-  -- "debug=0x14e serial=3 apcie=0xfffffffe -enable-kprintf-spam wdt=-1 clpc=0"</code></pre>
-
-<h3>兩個終端機視窗</h3>
-<table>
-<thead><tr><th>裝置</th><th>用途</th></tr></thead>
-<tbody>
-<tr><td><code>ttyACM0</code><br><span class="muted">host 若是 macOS：<code>cu.usbmodemP_01</code></span></td>
-    <td><strong>proxy</strong> —— <code>run_guest.py</code> 走這條，trace 輸出印在這裡</td></tr>
-<tr><td><code>ttyACM1</code><br><span class="muted">host 若是 macOS：<code>cu.usbmodemP_03</code></span></td>
-    <td><strong>guest 虛擬 UART</strong> —— macOS 自己的 console</td></tr>
-</tbody>
-</table>
-
-<div class="callout">
-  <strong>關於「接線孔會不會跟螢幕打架」。</strong>
-  <strong>Mac mini M1 有 2 個 Thunderbolt 孔</strong> —— 一個接 host 的 USB 線、一個給 Studio Display，剛好夠。
-  而且 m1n1 文件寫得很清楚：proxy mode 的 USB 除錯介面
-  <strong>「available on all Thunderbolt ports」</strong> —— 也就是<strong>每個孔都能用</strong>，
-  不用挑。<br><br>
-  <span class="muted">（進 DFU 模式是另一回事：Apple 對每個機型指定了特定的孔，那要用時再查。
-  角色若對調成 MBP 當 target，就要記得 14" MBP 的 DP <strong>只在左前那一孔</strong>，
-  proxy 的線別插在那裡。）</span>
-</div>
-
 
 <h2 id="p6"><span class="n">§6</span>規矩</h2>
 
@@ -585,77 +524,6 @@ python3 proxyclient/tools/run_guest.py \
   <span class="muted">政策管的是對 Asahi 的貢獻，<strong>不管你在自己機器上跑什麼</strong>。
   只想修好自己的螢幕、不打算上游，這個限制完全不存在。</span>
 </div>
-
-
-<h2 id="p7"><span class="n">§7</span>材料清單</h2>
-
-<h3>硬體</h3>
-<ul class="chk">
-  <li class="have">MacBook Pro 14" M1 Pro（<code>MacBookPro18,3</code>，t600x）—— <strong>host</strong>，
-    跑 python proxyclient，同時是最終要修好的那台。
-    <span class="muted">host 只需要能跑 python 和認到 USB 序列裝置；官方文件是以 host OS（macOS / Linux）
-    區分裝置節點名稱，沒有對 host 的 CPU 設限。你的 host 跑 Linux，所以裝置是 <code>/dev/ttyACM0</code>。</span></li>
-  <li class="have">Mac mini M1（t8103）—— <strong>target</strong>，被觀測的那台。
-    <span class="muted">macOS 14.8.3、降安全模型、關 SIP 都發生在這台。</span></li>
-  <li class="have">Apple Studio Display —— 最終目標。<strong>trace 時插在 target（mini）上</strong></li>
-  <li><strong>host ↔ target 的 USB 線</strong>：先試 Apple 原廠 USB-C 充電線（C-to-C，<strong>不要用 Thunderbolt 線</strong>）；
-      不順就換 USB-C→USB-A（m1n1 文件建議這種，插 host 的 USB-A 孔）</li>
-  <li><strong>一條 full-spec 非 Thunderbolt 的 USB-C 線</strong> —— 接 Studio Display 用，<strong>優先度最高</strong>。
-      <span class="muted">chadmed 在 #579 點名要這種線的測試結果，至今沒人做得出來（回報者手上沒有）。
-      不要 Thunderbolt 線、不要充電線；要標示支援 USB 3.2 / DP Alt Mode 的全規格線。</span></li>
-  <li class="have"><strong>ThinkPad X1 Gen 9</strong>（可選的 host）—— host 是純終端機，
-    <strong>x86 和 arm64 沒有差別</strong>，Asahi 開發者多數就是用 x86 Linux 當 host。
-    <span class="muted">唯一差別是編譯 m1n1 要裝交叉編譯器（<code>gcc-aarch64-linux-gnu</code>），
-    而在 Mac 上一樣要裝裸機工具鏈。用它當 host 可以把 MBP 空出來當日常機。
-    注意：萬一 target 需要 DFU revive，那只能用 Mac 做。</span></li>
-  <li><strong>一台「笨」螢幕</strong> —— 用來確認「斷點 1 在你機器上真的沒了」，也是階段 3 的對照組。
-    <br><span class="muted">建議挑<strong>同時有 USB-C（DP Alt Mode）和 HDMI 輸入</strong>的：
-    USB-C 那孔驗證 fairydust 的 DP 路徑，HDMI 那孔測內建 HDMI 在 macOS 26 韌體下還會不會動，平常還能當第二螢幕。</span>
-    <ul>
-      <li>必要：USB-C 輸入要標明支援 <strong>DP Alt Mode</strong>（有些 USB-C 孔只供電或只傳資料）</li>
-      <li>❌ 避開 <strong>DisplayLink</strong>：它走 USB 資料由 CPU 算圖，<strong>完全繞過 DP 路徑</strong> ——
-          可能真的會出圖，但你什麼都沒測到，還會誤判 DP 路徑已經通了</li>
-      <li>❌ 不要 Apple 的顯示器：有內建處理器就會觸發斷點 2，失去當對照組的意義</li>
-      <li>❌ 沒有「Thunderbolt 專用」這種規格，買普通的就好</li>
-      <li>加分：<strong>#601 的回報者就是用 ARZOPA Z1FC 16"（純供電模式）在 M1 Pro 上成功的</strong>。
-          買同一台，等於直接複製一個已知會成功的實驗</li>
-    </ul>
-  </li>
-  <li><span class="muted">替代方案：USB-C → HDMI 轉接頭 + 現有的電視，最便宜，一樣避開 DisplayLink</span></li>
-  <li>外接 SSD（選配）—— 放測試用的 macOS volume，不佔內建空間</li>
-</ul>
-
-<h3>軟體與帳號</h3>
-<ul class="chk">
-  <li class="have">Fedora Asahi Remix（已裝，在 host 上）</li>
-  <li><strong>macOS 14.8.3</strong>（備案 13.5），裝在 <strong>target（Mac mini）</strong>上一個<strong>完整的獨立 volume group</strong>。
-      不要用你現在的 macOS 安裝。你的兩台機器出廠版本都夠舊，macOS 26 不會擋住這件事（見<a href="#p5">§5</a>）</li>
-  <li>m1n1 repo + python proxyclient 相依套件（<strong>裝在 host，也就是 MBP 上</strong>）</li>
-  <li><code>img4tool</code> —— 解 kernelcache</li>
-  <li>GitHub 帳號 —— 留言、送 PR</li>
-  <li>Apple Developer 帳號（選配）—— 下載 KDK 取得帶符號的 kernel。第一次可以不用</li>
-</ul>
-
-<div class="callout">
-  <strong>firmware 版本要對齊。</strong>
-  Asahi 直接載入 macOS 安裝裡的 DCP firmware，而協議<strong>會隨 firmware 版本改變</strong>
-  （driver 裡有針對不同版本的 struct layout）。錄 trace 的版本要跟你 Linux 下跑的同一版。
-  這是一般 Linux 驅動開發者不會遇到的概念，但它會解釋掉你之後看到的一半怪現象。
-</div>
-
-<h3>要補的知識地圖</h3>
-<p>
-  MMIO（記憶體映射 I/O）· 中斷 · DMA / IOMMU · clock 與 power domain ·
-  device tree · bus 列舉 · 協處理器的 mailbox / RPC ·
-  <strong>firmware 版本化的 ABI</strong>（Asahi 特有）
-</p>
-
-<h3>語言</h3>
-<p>
-  這個社群大多數人母語都不是英文；你的貢獻內容 —— <code>dmesg</code>、trace dump、
-  「這樣會動／不會動」—— 是語言中性的；issue tracker 是非同步的，一則訊息花一小時寫沒人在意。
-  用翻譯工具處理<em>你自己要講的話</em>跟查字典一樣，不涉及 trace 解讀，碰不到政策那條線。
-</p>
 
 
 <footer>

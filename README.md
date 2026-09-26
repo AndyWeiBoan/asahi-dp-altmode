@@ -15,32 +15,32 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 
 ## 內容
 
-文字分四份，依「多久會看一次」拆開：
+一條軸：**你現在需要什麼**。每一頁只裝一種時間尺度的東西。
 
-| 檔案 | 內容 | 什麼時候看 |
+| 檔案 | 裝什麼 | 什麼時候開 |
 |---|---|---|
-| `html/index.html` | **入口** —— 現在的狀態、下一步、導航 | 每次打開 |
-| `html/handbook.html` | **手冊** —— 速查、照著做的步驟、卡住時的診斷順序、機制（插拔／開機鏈／#622）、名詞表、連結索引 | 卡住時查 |
-| `html/journal.html` | **日誌** —— 每次動手記一筆 | 寫的時候，偶爾回頭找線索 |
-| `html/plan.html` | **計畫** —— 大方向、兩個斷點、六階段學習階梯、m1n1 雙機 trace、材料清單、規矩 | 一個月一次 |
+| `html/index.html` | **入口** —— 現在卡在哪、下一件事、狀態三行 | 每次打開 |
+| `html/handbook.html` | **動手** —— 速查、build／退回／更新的指令、卡住時的診斷順序、機制（插拔／開機鏈／#622） | 手放在鍵盤上時 |
+| `html/plan.html` | **方向** —— 大方向、兩個斷點、六階段階梯、遠期 m1n1 雙機 trace、規矩 | 一個月一次 |
+| `html/appendix.html` | **附錄** —— 名詞表、連結索引、材料清單、日誌 | 查東西時 |
 
-七張圖：
+七張圖**各自嵌在解釋它的那一節裡**，不另成一條清單。`html/index.html#figs` 是總覽：
 
-| 檔案 | 內容 |
-|---|---|
-| `html/01-stack.html` | 圖 1 · 技術堆疊 —— 訊號經過哪些層，兩個斷點卡在哪 |
-| `html/02-ladder.html` | 圖 2 · 學習階梯 —— 六個階段與近／中／遠程目標 |
-| `html/03-m1n1.html` | 圖 3 · 角色分配 —— 哪台是 target、哪台是 host |
-| `html/04-phases.html` | 圖 4 · 兩個階段 —— Python 找答案，C 寫進 kernel |
-| `html/05-boot.html` | 圖 5 · 開機鏈 —— iBoot → m1n1 → U-Boot → GRUB → Linux |
-| `html/06-sides.html` | 圖 6 · Mac vs 螢幕 —— 兩邊各有一顆 Apple 處理器，各自管什麼 |
-| `html/07-hotplug.html` | 圖 7 · 插拔事件 —— HPD、IRQ、kernel 狀態與 mux |
-| `spec/*.json` | 七張圖的原始碼（archify 規格），要改圖改這裡 |
+| 檔案 | 內容 | 住在哪 |
+|---|---|---|
+| `html/01-stack.html` | 圖 1 · 技術堆疊 —— 訊號經過哪些層，兩個斷點卡在哪 | 方向 §1 |
+| `html/06-sides.html` | 圖 6 · Mac vs 螢幕 —— 兩邊各有一顆 Apple 處理器 | 方向 §1 |
+| `html/02-ladder.html` | 圖 2 · 學習階梯 —— 六個階段與近／中／遠程目標 | 方向 §3 |
+| `html/04-phases.html` | 圖 4 · 兩個階段 —— Python 找答案，C 寫進 kernel | 方向 §4 |
+| `html/03-m1n1.html` | 圖 3 · 角色分配 —— 哪台是 target、哪台是 host | 方向 §5 |
+| `html/07-hotplug.html` | 圖 7 · 插拔事件 —— HPD、IRQ、kernel 狀態與 mux | 動手 §4 |
+| `html/05-boot.html` | 圖 5 · 開機鏈 —— iBoot → m1n1 → U-Boot → GRUB → Linux | 動手 §5 |
+| `spec/*.json` | 七張圖的原始碼（archify 規格），要改圖改這裡 | |
 
 四份文字頁共用 `html/doc.css` 和 `html/doc.js`；七張圖是 archify 產生的自足檔案，不吃那兩個。
 
 導覽列與頁尾的連結由 `html/doc.js` 最上面的 `PAGES` / `FIGS` 兩個陣列產生 ——
-**加一張圖或改一句描述改那裡就好**，四份頁面會一起變。
+**加一頁或改一句描述改那裡就好**，四份頁面會一起變。
 
 圖支援深／淺色、縮放、搜尋與引導視角，建議全螢幕開啟。
 
@@ -70,7 +70,7 @@ Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https
 > 並重刷 m1n1 —— fairydust kernel 會帶著官方 DTB 開機，外接螢幕安靜地不再亮。
 > 修法：`sudo ln -sfn /boot/dtbs/<fairydust版本> /boot/dtb && sudo update-m1n1`。
 
-細節見**手冊 §2 照著做**；為什麼要做這一步見**計畫 §3**。
+照著做的部分在**動手 §2.1**；為什麼要做這一步見**方向 §3**。
 
 ## 實測紀錄
 
@@ -79,8 +79,8 @@ Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https
 （`flip_done timed out` 從 2 次變 0 次、`atcphy_mux_set` WARNING 消失）。
 剩下的卡點在合成器：`Cannot commit when a page-flip is awaiting`。
 
-完整過程與判斷記在 **日誌**；#622 兩塊改動的白話解釋、診斷工具對照表、那幾個坑
-整理在 **手冊**。
+完整過程與判斷記在**附錄 §4 日誌**；#622 兩塊改動的白話解釋、診斷工具對照表、那幾個坑
+整理在**動手**頁。
 
 ## 重新產生圖
 
@@ -107,4 +107,4 @@ node ~/.claude/skills/archify/bin/archify.mjs \
 對這裡不構成限制。
 
 仍然守的一條線：**不把 m1n1 hypervisor 的 trace 內容貼進 LLM**。那是政策點名過的用法，
-而且是單向門 —— 哪天改變主意要送 PR，那份成果就得重新獨立產出。詳見計畫 §6。
+而且是單向門 —— 哪天改變主意要送 PR，那份成果就得重新獨立產出。詳見方向 §6。
