@@ -19,7 +19,7 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 
 | 檔案 | 裝什麼 | 什麼時候開 |
 |---|---|---|
-| `html/index.html` | **入口** —— 現在卡在哪、下一件事、狀態三行 | 每次打開 |
+| `html/index.html` | **入口** —— 不是文件的一章：三顆狀態燈、卡在哪、下一件事、去哪 | 每次打開 |
 | `html/handbook.html` | **動手** —— 速查、build／退回／更新的指令、卡住時的診斷順序、機制（插拔／開機鏈／#622） | 手放在鍵盤上時 |
 | `html/plan.html` | **方向** —— 大方向、兩個斷點、六階段階梯、遠期 m1n1 雙機 trace、規矩 | 一個月一次 |
 | `html/appendix.html` | **附錄** —— 名詞表、連結索引、材料清單、日誌 | 查東西時 |
@@ -40,7 +40,7 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 四份文字頁共用 `html/doc.css` 和 `html/doc.js`；七張圖是 archify 產生的自足檔案，不吃那兩個。
 
 導覽列與頁尾的連結由 `html/doc.js` 最上面的 `PAGES` / `FIGS` 兩個陣列產生 ——
-**加一頁或改一句描述改那裡就好**，四份頁面會一起變。
+**加一頁、加一張圖或改一句描述改那裡就好** —— 側邊導覽、頁尾、入口頁的三張卡片和圖索引都從那裡產生。
 
 圖支援深／淺色、縮放、搜尋與引導視角，建議全螢幕開啟。
 
