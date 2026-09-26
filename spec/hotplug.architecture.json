@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "插拔時，誰收到 IRQ，誰改了什麼狀態？",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "external": { "label": "外接裝置／Apple firmware" },
+        "backend": { "label": "硬體或 Linux driver" },
+        "frontend": { "label": "Linux framework 狀態" }
+      }
+    },
+    "views": [
+      { "id": "irq", "label": "IRQ 到 work", "focus": ["display", "cd321x", "irq", "read", "work"], "note": "IRQ 不是完整資料；CD321x 先更新自己的 register，再用 IRQ 要 kernel 來讀。" },
+      { "id": "unplug", "label": "完整拔線", "focus": ["work", "safe", "mux", "atcphy"], "note": "PLUG_PRESENT = 0：設成 SAFE、傳給 mux，然後 return；不會進 DP mode function。" },
+      { "id": "dp", "label": "插著且是 DP", "focus": ["work", "dp", "mux", "atcphy"], "note": "DP_CONNECTION = 1：計算 DP mode，經 Type-C mux framework 呼叫 ATC PHY。" },
+      { "id": "dcp", "label": "顯示 hotplug", "focus": ["work", "dcp", "display"], "note": "同一個 update work 以 drm_connector_oob_hotplug_event 通知 DCP 處理 DP connect / disconnect。" }
+    ]
+  },
+  "components": [
+    { "id": "display", "type": "external", "label": "外接螢幕", "sublabel": "MSI 或 Studio Display\nHPD：1 = 可用；0 = 暫時不可用", "pos": [30, 330], "size": [220, 90], "tag": "電源、拔線、初始化都可能改變 HPD" },
+    { "id": "cd321x", "type": "backend", "label": "CD321x", "sublabel": "USB-C controller\nevent / status / data status", "pos": [290, 120], "size": [220, 84], "tag": "硬體狀態先在這裡更新" },
+    { "id": "atcphy", "type": "backend", "label": "ATC PHY", "sublabel": "實際切換高速 lane\nSAFE / USB / DP", "pos": [290, 830], "size": [220, 84], "tag": "硬體 register" },
+    { "id": "dcp", "type": "external", "label": "DCP", "sublabel": "Apple DCP firmware\nDP connect / disconnect", "pos": [900, 300], "size": [220, 84] },
+    { "id": "irq", "type": "backend", "label": "cd321x_interrupt()", "sublabel": "已註冊的 threaded IRQ handler", "pos": [560, 90], "size": [220, 64], "tag": "Linux kernel" },
+    { "id": "read", "type": "backend", "label": "讀 CD321x register", "sublabel": "event、ack、status、power、data status", "pos": [560, 230], "size": [220, 70], "tag": "Linux kernel" },
+    { "id": "cache", "type": "frontend", "label": "tps cache + queue", "sublabel": "更新 tps；排 500 ms delayed work", "pos": [560, 370], "size": [220, 72], "tag": "Linux kernel" },
+    { "id": "work", "type": "frontend", "label": "cd321x_update_work()", "sublabel": "讀 snapshot；更新 Type-C 狀態", "pos": [560, 510], "size": [220, 70], "tag": "Linux kernel" },
+    { "id": "safe", "type": "frontend", "label": "完整拔線", "sublabel": "PLUG_PRESENT = 0\ntypec_set_mode(SAFE)，return", "pos": [500, 660], "size": [220, 72], "tag": "不進 cd321x_typec_update_mode" },
+    { "id": "dp", "type": "frontend", "label": "仍插著而且是 DP", "sublabel": "DP_CONNECTION = 1\ncd321x_typec_update_mode()", "pos": [750, 660], "size": [220, 72], "tag": "Linux kernel" },
+    { "id": "mux", "type": "backend", "label": "Type-C mux framework", "sublabel": "typec_set_mode / typec_mux_set\n→ atcphy_mux_set", "pos": [680, 820], "size": [220, 72], "tag": "Linux kernel → hardware" }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "外接螢幕", "wraps": ["display"] },
+    { "kind": "region", "label": "MacBook Pro：硬體與 Linux kernel", "wraps": ["cd321x", "atcphy", "dcp", "irq", "read", "cache", "work", "safe", "dp", "mux"] }
+  ],
+  "connections": [
+    { "id": "hpd", "from": "display", "to": "cd321x", "label": "USB-C：HPD / DP 狀態", "variant": "emphasis" },
+    { "id": "irq-line", "from": "cd321x", "to": "irq", "label": "hardware IRQ", "labelAt": [535, 218], "variant": "emphasis" },
+    { "id": "register-read", "from": "irq", "to": "read", "fromSide": "bottom", "toSide": "top" },
+    { "id": "cache-update", "from": "read", "to": "cache", "fromSide": "bottom", "toSide": "top" },
+    { "id": "delayed-work", "from": "cache", "to": "work", "label": "500 ms", "labelAt": [670, 456], "fromSide": "bottom", "toSide": "top" },
+    { "id": "unplug-branch", "from": "work", "to": "safe", "fromSide": "bottom", "toSide": "top" },
+    { "id": "dp-branch", "from": "work", "to": "dp", "fromSide": "bottom", "toSide": "top" },
+    { "id": "safe-mux", "from": "safe", "to": "mux", "fromSide": "bottom", "toSide": "top" },
+    { "id": "dp-mux", "from": "dp", "to": "mux", "fromSide": "bottom", "toSide": "top" },
+    { "id": "phy-config", "from": "mux", "to": "atcphy", "label": "寫 ATC PHY register", "fromSide": "left", "toSide": "right", "variant": "emphasis" },
+    { "id": "oob-hotplug", "from": "work", "to": "dcp", "label": "oob hotplug", "variant": "emphasis" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "IRQ 不是資料本身", "items": ["CD321x 的 register 在 IRQ 前已經更新", "IRQ 只表示「狀態變了，來讀我」", "cd321x_interrupt() 讀回資料後，kernel cache 才更新"] },
+    { "dot": "amber", "title": "完整拔線與 HPD 變化不同", "items": ["完整拔線：PLUG_PRESENT = 0，走 SAFE 分支並 return", "HPD 變化時，線可能仍插著，仍可能維持 DP mode", "所以 DP mux already in mode 4 不等於再次實體插線"] },
+    { "dot": "emerald", "title": "兩個你新增的 log 在哪裡", "items": ["DP mux request：DP branch 第一次要求 mux 切換", "DP mux already：仍是 DP，但 cd321x state 已是 DP，不重設", "Type-C mux configure ... : 0：ATC PHY 設定成功"] }
+  ]
+}

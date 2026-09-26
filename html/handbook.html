@@ -34,7 +34,7 @@
   <li><a href="04-phases.html">圖 4 · 兩個階段<small>Python 找答案，C 寫進 kernel</small></a></li>
   <li><a href="05-boot.html">圖 5 · 開機鏈<small>iBoot → m1n1 → U-Boot → GRUB</small></a></li>
   <li><a href="06-sides.html">圖 6 · Mac vs 螢幕<small>哪些東西在哪一邊</small></a></li>
-  <li><a href="#h2-hotplug">圖 7 · 插拔事件<small>HPD、IRQ、kernel 與 mux</small></a></li>
+  <li><a href="07-hotplug.html">圖 7 · 插拔事件<small>HPD、IRQ、kernel 與 mux</small></a></li>
 </ul>
 <h4>本頁章節</h4>
 <ul id="toclist">
@@ -272,6 +272,11 @@ ls -d /sys/class/typec/port*-partner</code></pre>
   這一節只講<strong>左前 USB-C 孔（<code>0-003f</code>）</strong>的 Type-C／DP 狀態路徑。
   重點不是「插線就切 DP」，而是：硬體先改 register、用 IRQ 提醒 kernel；kernel 讀回狀態後，才決定要不要設定 ATC PHY。
 </p>
+
+<div class="embed">
+  <div class="bar"><b>圖 7 · 插拔事件</b><a href="07-hotplug.html" target="_blank">在新分頁開啟，可縮放與切換視角 ↗</a></div>
+  <iframe src="07-hotplug.html" loading="lazy" title="圖 7 · 插拔事件：從 HPD 到 IRQ、kernel 與 mux"></iframe>
+</div>
 
 <div class="hotplug-diagram" role="img" aria-label="外接螢幕的 HPD 狀態改變，經過 Mac 內的 CD321x、Linux kernel、Type-C mux framework，最後由 ATC PHY 切換高速 lane；同時通知 DCP 處理顯示 hotplug。">
   <section class="hd-screen">

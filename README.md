@@ -34,9 +34,10 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 | `html/04-phases.html` | 圖 4 · 兩個階段 —— Python 找答案，C 寫進 kernel |
 | `html/05-boot.html` | 圖 5 · 開機鏈 —— iBoot → m1n1 → U-Boot → GRUB → Linux |
 | `html/06-sides.html` | 圖 6 · Mac vs 螢幕 —— 兩邊各有一顆 Apple 處理器，各自管什麼 |
-| `spec/*.json` | 六張圖的原始碼（archify 規格），要改圖改這裡 |
+| `html/07-hotplug.html` | 圖 7 · 插拔事件 —— HPD、IRQ、kernel 狀態與 mux |
+| `spec/*.json` | 七張圖的原始碼（archify 規格），要改圖改這裡 |
 
-四份文字頁共用 `html/doc.css` 和 `html/doc.js`；六張圖是 archify 產生的自足檔案，不吃那兩個。
+四份文字頁共用 `html/doc.css` 和 `html/doc.js`；七張圖是 archify 產生的自足檔案，不吃那兩個。
 
 圖支援深／淺色、縮放、搜尋與引導視角，建議全螢幕開啟。
 
