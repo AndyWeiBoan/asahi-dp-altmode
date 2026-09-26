@@ -39,6 +39,7 @@
 <ul id="toclist">
   <li><a href="#h1">§1　操作</a></li>
   <li><a href="#h2">§2　診斷</a></li>
+  <li><a href="#h2-hotplug">§2.5　插拔：中斷到 mux</a></li>
   <li><a href="#h3">§3　這台機器的硬事實</a></li>
   <li><a href="#h4">§4　踩過的坑</a></li>
   <li><a href="#h5">§5　開機鏈</a></li>
@@ -263,6 +264,109 @@ tail -f $XDG_RUNTIME_DIR/hypr/*/hyprland.log
 # 是哪一台螢幕、插在哪個孔
 wlr-randr
 ls -d /sys/class/typec/port*-partner</code></pre>
+
+<h2 id="h2-hotplug"><span class="n">§2.5</span>插拔：從中斷到 mux</h2>
+
+<p>
+  這一節只講<strong>左前 USB-C 孔（<code>0-003f</code>）</strong>的 Type-C／DP 狀態路徑。
+  重點不是「插線就切 DP」，而是：硬體先改 register、用 IRQ 提醒 kernel；kernel 讀回狀態後，才決定要不要設定 ATC PHY。
+</p>
+
+<div class="hotplug-diagram" role="img" aria-label="外接螢幕的 HPD 狀態改變，經過 Mac 內的 CD321x、Linux kernel、Type-C mux framework，最後由 ATC PHY 切換高速 lane；同時通知 DCP 處理顯示 hotplug。">
+  <section class="hd-screen">
+    <p class="hd-kicker">外接螢幕</p>
+    <h3>MSI／Studio Display</h3>
+    <div class="hd-node external">
+      <b>HPD</b>
+      <span>螢幕表示 DP 顯示端是否可用<br><code>1</code>＝可用，<code>0</code>＝暫時不可用</span>
+    </div>
+    <p class="hd-note">拔線、關螢幕電源、螢幕重新初始化，都可能令 HPD 改變。</p>
+  </section>
+
+  <div class="hd-cable" aria-hidden="true">
+    <span>USB-C 線</span>
+    <b>HPD／DP 狀態</b>
+    <i>→</i>
+  </div>
+
+  <section class="hd-mac">
+    <p class="hd-kicker">MacBook Pro</p>
+    <h3>硬體與 Linux kernel</h3>
+
+    <div class="hd-hardware">
+      <div class="hd-node hardware">
+        <b>CD321x</b>
+        <span>USB-C / USB-PD controller<br>自己的 event、status、data status register 已先更新</span>
+      </div>
+      <div class="hd-node hardware">
+        <b>ATC PHY</b>
+        <span>真正切換高速 lane<br>SAFE／USB／DP</span>
+      </div>
+      <div class="hd-node hardware">
+        <b>DCP</b>
+        <span>顯示協處理器<br>處理 DP connect / disconnect</span>
+      </div>
+    </div>
+
+    <div class="hd-irq">CD321x IRQ：<span>「register 狀態變了，來讀我」</span> ↓</div>
+
+    <div class="hd-kernel">
+      <p class="hd-kicker">Linux kernel</p>
+      <div class="hd-flow">
+        <div class="hd-node kernel">
+          <b>① <code>cd321x_interrupt()</code></b>
+          <span>讀 event register，ack；再依 event 讀 status / power / data status。</span>
+        </div>
+        <div class="hd-arrow">↓</div>
+        <div class="hd-node kernel">
+          <b>② <code>tps</code> + <code>cd321x_connect()</code></b>
+          <span>driver 暫存剛讀到的資料，排入 500 ms delayed work。</span>
+        </div>
+        <div class="hd-arrow">↓</div>
+        <div class="hd-node kernel">
+          <b>③ <code>cd321x_update_work()</code></b>
+          <span>拿 snapshot，更新 Type-C partner／role／orientation 等 kernel 狀態。</span>
+        </div>
+      </div>
+
+      <div class="hd-branches">
+        <div class="hd-branch safe">
+          <b>完整拔線：<code>PLUG_PRESENT = 0</code></b>
+          <span>記錄 SAFE → <code>typec_set_mode(..., SAFE)</code> → <code>typec_mux_set()</code> → ATC PHY。接著 return，不會進 <code>cd321x_typec_update_mode()</code>。</span>
+        </div>
+        <div class="hd-branch dp">
+          <b>仍插著且是 DP：<code>DP_CONNECTION = 1</code></b>
+          <span><code>cd321x_typec_update_mode()</code> 計算 DP mode → <code>typec_mux_set()</code> → <code>atcphy_mux_set()</code> → 寫 ATC PHY register。</span>
+        </div>
+      </div>
+
+      <div class="hd-dcp">
+        <b>同一個 worker 也通知顯示端：</b>
+        HPD 改變時 <code>drm_connector_oob_hotplug_event()</code>
+        → DCP 的 <code>dcp_dptx_connect()</code>／<code>dcp_dptx_disconnect()</code>
+      </div>
+    </div>
+  </section>
+</div>
+
+<h3>狀態到底在何時變？</h3>
+<table>
+<thead><tr><th>時間</th><th>哪一份狀態改變</th><th>誰改的</th></tr></thead>
+<tbody>
+<tr><td>螢幕狀態改變時</td><td>HPD 電位；CD321x 內部的 register</td><td>螢幕與 CD321x 硬體</td></tr>
+<tr><td>IRQ handler 讀完後</td><td><code>tps-&gt;status</code>、<code>tps-&gt;data_status</code> 等 driver cache</td><td><code>cd321x_interrupt()</code></td></tr>
+<tr><td>500 ms 後 work 執行時</td><td>Linux Type-C framework：partner、角色、方向；<code>cd321x-&gt;state</code></td><td><code>cd321x_update_work()</code></td></tr>
+<tr><td>需要切換時</td><td>ATC PHY 的硬體 register，實際高速 lane 連法</td><td><code>typec_mux_set()</code> → <code>atcphy_mux_set()</code></td></tr>
+</tbody>
+</table>
+
+<h3>用 log 對照圖</h3>
+<pre><code># 這兩句代表圖中的③ DP branch 已經走到 ATC PHY，且回傳成功
+tps6598x 0-003f: DP mux request: mode 4, result 0
+phy-apple-atc b03000000.phy: Type-C mux configure mode 6: 0
+
+# 這句代表③仍判斷為 DP，但 cd321x-&gt;state 已經是 DP，故不重設 mux
+tps6598x 0-003f: DP mux already in mode 4</code></pre>
 
 
 <h2 id="h3"><span class="n">§3</span>這台機器的硬事實</h2>
