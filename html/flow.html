@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>流程</title>
+<link rel="stylesheet" href="doc.css">
+</head>
+<body>
+<button class="themebtn" id="tt" type="button">深色</button>
+<div class="wrap">
+
+<header>
+  <h1>流程</h1>
+  <p class="lede">事件發生的時候，<a href="architecture.html">架構</a>那幾個角色實際跑了什麼。
+  每一個箭頭都是架構 §4 那五組框架介面的其中一組 —— 先看完那一頁，這裡才讀得動。</p>
+</header>
+
+<div class="layout">
+<nav class="toc">
+<details open>
+<summary>目錄 ▾</summary>
+<div id="nav"></div>
+<h4>本頁章節</h4>
+<ul id="toclist">
+  <li><a href="#boot">§1　開機：這條路怎麼建立起來</a></li>
+  <li><a href="#hotplug">§2　插線與拔線</a></li>
+  <li><a href="#frames">§3　送一張畫面</a></li>
+  <li><a href="#pageflip">§4　目前卡住的那一步</a></li>
+</ul>
+</details>
+</nav>
+<main>
+
+<h2 id="boot"><span class="n">§1</span>開機：這條路怎麼建立起來</h2>
+<p>
+  這一節是階段 0 的前置知識。你要多裝一顆 kernel、要能在兩顆之間切換、
+  之後還要讓 m1n1 換個模式跑 —— 這些都建立在「開機時到底發生什麼」之上。
+</p>
+
+<div class="embed">
+  <div class="bar"><b>圖 5 · 開機鏈</b><a href="05-boot.html" target="_blank">在新分頁開啟，可全螢幕操作 ↗</a></div>
+  <iframe src="05-boot.html" loading="lazy" title="圖 5 · 開機鏈"></iframe>
+  <p class="muted" style="font-size:13.5px">上排是平常開機的五棒，下排是 m1n1 的另一種用法 —— 分歧點就在第二棒。</p>
+</div>
+
+<h3>五棒接力</h3>
+
+<table>
+<thead><tr><th>角色</th><th>做什麼</th></tr></thead>
+<tbody>
+<tr><td><strong>iBoot</strong></td><td>Apple 的韌體。驗證簽章後交棒，你完全碰不到</td></tr>
+<tr><td><strong>m1n1</strong></td><td>初始化硬體、產生 device tree。<strong>Asahi 安裝時就放進 stub 分割區了</strong></td></tr>
+<tr><td><strong>U-Boot</strong></td><td>把 Apple 的特殊開機環境轉成標準的 Linux 開機介面</td></tr>
+<tr><td><strong>GRUB</strong></td><td>讀開機項目清單、顯示選單、把你選的那顆 kernel 載進記憶體</td></tr>
+<tr><td><strong>Linux kernel</strong></td><td>掛載 rootfs、載入模組，最後交給 systemd → Hyprland</td></tr>
+</tbody>
+</table>
+
+<h3>kernel 是一組帶版本後綴的檔案</h3>
+
+<p>所以多顆可以並存 —— 裝新的不會蓋掉舊的：</p>
+
+<pre><code>/boot/vmlinuz-&lt;版本&gt;              # kernel 本體
+/boot/initramfs-&lt;版本&gt;.img        # 開機用的暫時根目錄
+/boot/dtb-&lt;版本&gt;/                 # device tree（Asahi 必要，別忘了裝）
+/lib/modules/&lt;版本&gt;/              # 驅動模組</code></pre>
+
+<h3>那份「有哪些 kernel 可以選」的清單</h3>
+
+<p>Fedora 用 BLS（Boot Loader Specification）：一顆 kernel 一個設定檔。</p>
+
+<pre><code>ls /boot/loader/entries/     # 每個 .conf 就是選單上的一項
+sudo grubby --info=ALL       # 人話版：列出每一項的 kernel / initrd / 參數</code></pre>
+
+<p class="muted">
+  裝完 fairydust 之後這裡會多一項 —— 那是「有沒有裝成功」最直接的驗證，比重開機試快得多。
+</p>
+
+<div class="callout">
+  <strong>動手 build 之前，先讓 GRUB 選單顯示出來。</strong>
+  Asahi 預設會跳過選單（為了開機快）。編輯 <code>/etc/default/grub</code>，
+  把 <code>GRUB_TIMEOUT</code> 設成 5，<strong>同時確認 <code>GRUB_TIMEOUT_STYLE=menu</code></strong>
+  —— 只改 timeout 而 style 還是 <code>hidden</code> 的話選單照樣不會出現。
+  然後 <code>sudo grub2-mkconfig -o /boot/grub2/grub.cfg</code>。<br><br>
+  不先做這件事，新 kernel 開不起來時你會找不到地方選回舊的。
+</div>
+
+<h3>m1n1 不是要新裝的東西</h3>
+
+<p>
+  它<strong>現在就在你的開機鏈裡</strong>，每次開機都在跑 —— 沒有它 Asahi 根本開不起來。
+  之後要做的不是安裝新程式，而是讓同一支程式換個模式：
+</p>
+
+<table>
+<thead><tr><th>模式</th><th>做什麼</th></tr></thead>
+<tbody>
+<tr><td><strong>平常</strong>（你現在）</td><td>初始化硬體 → 交棒給 U-Boot → 一路到 Linux</td></tr>
+<tr><td><strong>hypervisor</strong>（之後）</td><td>進 EL2、攔截 MMIO、把 macOS 當 guest 開起來</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  實務上會有<strong>兩份 m1n1 並存</strong>：stub 裡那份繼續負責開你的 Asahi；
+  hypervisor 用的是你自己 build 的新版（官方文件強調「每次都先 chainload working tree 的 m1n1」）。
+  兩份互不干擾，正常開機流程不受影響。
+</p>
+
+
+<h2 id="hotplug"><span class="n">§2</span>插線與拔線：從中斷到 mux</h2>
+<p>
+  這一節只講<strong>左前 USB-C 孔（<code>0-003f</code>）</strong>的 Type-C／DP 狀態路徑。
+  重點不是「插線就切 DP」，而是：硬體先改 register、用 IRQ 提醒 kernel；kernel 讀回狀態後，才決定要不要設定 ATC PHY。
+</p>
+
+<div class="embed">
+  <div class="bar"><b>圖 7 · 插拔事件</b><a href="07-hotplug.html" target="_blank">在新分頁開啟，可縮放與切換視角 ↗</a></div>
+  <iframe src="07-hotplug.html" loading="lazy" title="圖 7 · 插拔事件：從 HPD 到 IRQ、kernel 與 mux"></iframe>
+</div>
+
+<div class="hotplug-diagram" role="img" aria-label="外接螢幕的 HPD 狀態改變，經過 Mac 內的 CD321x、Linux kernel、Type-C mux framework，最後由 ATC PHY 切換高速 lane；同時通知 DCP 處理顯示 hotplug。">
+  <section class="hd-screen">
+    <p class="hd-kicker">外接螢幕</p>
+    <h3>MSI／Studio Display</h3>
+    <div class="hd-node external">
+      <b>HPD</b>
+      <span>螢幕表示 DP 顯示端是否可用<br><code>1</code>＝可用，<code>0</code>＝暫時不可用</span>
+    </div>
+    <p class="hd-note">拔線、關螢幕電源、螢幕重新初始化，都可能令 HPD 改變。</p>
+  </section>
+
+  <div class="hd-cable" aria-hidden="true">
+    <span>USB-C 線</span>
+    <b>HPD／DP 狀態</b>
+    <i>→</i>
+  </div>
+
+  <section class="hd-mac">
+    <p class="hd-kicker">MacBook Pro</p>
+    <h3>硬體與 Linux kernel</h3>
+
+    <div class="hd-hardware">
+      <div class="hd-node hardware">
+        <b>CD321x</b>
+        <span>USB-C / USB-PD controller<br>自己的 event、status、data status register 已先更新</span>
+      </div>
+      <div class="hd-node hardware">
+        <b>ATC PHY</b>
+        <span>真正切換高速 lane<br>SAFE／USB／DP</span>
+      </div>
+      <div class="hd-node hardware">
+        <b>DCP</b>
+        <span>顯示協處理器<br>處理 DP connect / disconnect</span>
+      </div>
+    </div>
+
+    <div class="hd-irq">CD321x IRQ：<span>「register 狀態變了，來讀我」</span> ↓</div>
+
+    <div class="hd-kernel">
+      <p class="hd-kicker">Linux kernel</p>
+      <div class="hd-flow">
+        <div class="hd-node kernel">
+          <b>① <code>cd321x_interrupt()</code></b>
+          <span>讀 event register，ack；再依 event 讀 status / power / data status。</span>
+        </div>
+        <div class="hd-arrow">↓</div>
+        <div class="hd-node kernel">
+          <b>② <code>tps</code> + <code>cd321x_connect()</code></b>
+          <span>driver 暫存剛讀到的資料，排入 500 ms delayed work。</span>
+        </div>
+        <div class="hd-arrow">↓</div>
+        <div class="hd-node kernel">
+          <b>③ <code>cd321x_update_work()</code></b>
+          <span>拿 snapshot，更新 Type-C partner／role／orientation 等 kernel 狀態。</span>
+        </div>
+      </div>
+
+      <div class="hd-branches">
+        <div class="hd-branch safe">
+          <b>完整拔線：<code>PLUG_PRESENT = 0</code></b>
+          <span>記錄 SAFE → <code>typec_set_mode(..., SAFE)</code> → <code>typec_mux_set()</code> → ATC PHY。接著 return，不會進 <code>cd321x_typec_update_mode()</code>。</span>
+        </div>
+        <div class="hd-branch dp">
+          <b>仍插著且是 DP：<code>DP_CONNECTION = 1</code></b>
+          <span><code>cd321x_typec_update_mode()</code> 計算 DP mode → <code>typec_mux_set()</code> → <code>atcphy_mux_set()</code> → 寫 ATC PHY register。</span>
+        </div>
+      </div>
+
+      <div class="hd-dcp">
+        <b>同一個 worker 也通知顯示端：</b>
+        HPD 改變時 <code>drm_connector_oob_hotplug_event()</code>
+        → DCP 的 <code>dcp_dptx_connect()</code>／<code>dcp_dptx_disconnect()</code>
+      </div>
+    </div>
+  </section>
+</div>
+
+<h3>狀態到底在何時變？</h3>
+<table>
+<thead><tr><th>時間</th><th>哪一份狀態改變</th><th>誰改的</th></tr></thead>
+<tbody>
+<tr><td>螢幕狀態改變時</td><td>HPD 電位；CD321x 內部的 register</td><td>螢幕與 CD321x 硬體</td></tr>
+<tr><td>IRQ handler 讀完後</td><td><code>tps-&gt;status</code>、<code>tps-&gt;data_status</code> 等 driver cache</td><td><code>cd321x_interrupt()</code></td></tr>
+<tr><td>500 ms 後 work 執行時</td><td>Linux Type-C framework：partner、角色、方向；<code>cd321x-&gt;state</code></td><td><code>cd321x_update_work()</code></td></tr>
+<tr><td>需要切換時</td><td>ATC PHY 的硬體 register，實際高速 lane 連法</td><td><code>typec_mux_set()</code> → <code>atcphy_mux_set()</code></td></tr>
+</tbody>
+</table>
+
+<h3>用 log 對照圖</h3>
+<pre><code># 這兩句代表圖中的③ DP branch 已經走到 ATC PHY，且回傳成功
+tps6598x 0-003f: DP mux request: mode 4, result 0
+phy-apple-atc b03000000.phy: Type-C mux configure mode 6: 0
+
+# 這句代表③仍判斷為 DP，但 cd321x-&gt;state 已經是 DP，故不重設 mux
+tps6598x 0-003f: DP mux already in mode 4</code></pre>
+
+
+<h2 id="frames"><span class="n">§3</span>送一張畫面：page flip 與冷插／熱插的差別</h2>
+
+<h3>先分清楚這顆 kernel 上疊了哪些東西</h3>
+
+<p>
+  三層，容易搞混，先分清楚 —— <strong>只有第三層是這次為了熱插拔加的</strong>：
+</p>
+
+<table>
+<thead><tr><th></th><th>是什麼</th><th>誰做的</th><th>跟外接螢幕的關係</th></tr></thead>
+<tbody>
+<tr><td><strong>底層</strong></td>
+  <td><code>fairydust</code> 分支本身</td>
+  <td>Asahi 上游的實驗分支</td>
+  <td><strong>USB-C 出圖的程式碼全部在這裡</strong>。正式 kernel 沒有，所以非用不可</td></tr>
+<tr><td><strong>patch 0001</strong></td>
+  <td><code>0001-drm-apple-reconnect-DP2HDMI-output-on-resume.patch</code></td>
+  <td>build 腳本作者自己加的（原作者 rgvxsthi）</td>
+  <td><strong>無關</strong>。它修的是<em>內建 HDMI 孔</em>睡醒之後不亮，走的是另一條路徑。
+    跟著腳本一起來的附贈品，<code>SKIP_PATCHES=1</code> 可以不要</td></tr>
+<tr><td><strong>patch 0002</strong></td>
+  <td><code>0002-pr622-fix-dp-altmode-hotplug.patch</code>（= <a href="https://github.com/AsahiLinux/linux/pull/622">PR #622</a>）</td>
+  <td>這次自己加的</td>
+  <td><strong>這才是這一節在講的東西</strong>，修 USB-C DP 的熱插拔</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  換句話說「fairydust 是分支，不是 patch」；而 0001 雖然跟著 fairydust 的 build 腳本一起來，
+  但它不是 fairydust 的一部分，也跟 USB-C 沒關係。下面所有的 before/after 都只在講 0002。
+</p>
+<p>
+  它只改兩個檔、42 行，但是兩個完全不同的問題。
+</p>
+
+<div class="stage key">
+  <h3>第一塊 · <code>iomfb.c</code> —— 為什麼會卡住幾十秒</h3>
+  <p>
+    先講「page flip」是什麼：合成器每畫好一張畫面，就交給 kernel 說「換成這張」，
+    然後<strong>停下來等 kernel 回報「換好了」</strong>才畫下一張。這是正常運作方式。
+  </p>
+  <p>
+    問題在於，螢幕剛接上、DCP 還沒真正把顯示管線開起來的那段時間
+    （driver 裡那個旗標叫 <code>valid_mode</code>，這時候是 0），
+    DCP 會<strong>收下那張畫面然後默默丟掉，不回報</strong>。firmware 自己的 log 寫得很直白：
+  </p>
+  <pre><code>swap_submit_dcp: swallowed swap ID 452 as fControllerPowerState is 0
+swap_submit_dcp: swallowed swap ID 452 as timings are not enabled</code></pre>
+  <p>
+    合成器不知道畫面被丟了，就一直等，直到內建的 <strong>10 秒逾時</strong>。
+    它想畫幾張就卡幾個 10 秒 —— 這就是「整台電腦卡住幾十秒」的來源。
+  </p>
+  <p>
+    <strong>patch 做的事</strong>：送出去之前先看一眼 <code>valid_mode</code>。
+    還是 0 就別送了，直接自己標記「這一幀完成」讓合成器繼續跑下去。三行：
+  </p>
+  <pre><code>if (!dcp->valid_mode) {
+        schedule_work(&amp;dcp->vblank_wq);
+        return;
+}</code></pre>
+  <p class="muted">
+    注意這不是「修好顯示」，是「不要因為顯示還沒好就把整台機器拖住」。
+    差別很重要 —— 它解釋了為什麼套完之後不卡了，但畫面依然沒出來。
+  </p>
+</div>
+
+<div class="stage key">
+  <h3>第二塊 · <code>atc.c</code> —— 為什麼熱插不會亮、冷插卻會</h3>
+  <p>
+    USB-C 那條線裡有幾組高速通道，<strong>同一組實體線路可以拿來跑 USB3，也可以拿來跑 DisplayPort</strong>，
+    兩者互斥。要從 USB3 切成 DP，得先把負責 USB3 的那個電路（叫 <strong>PIPE handler</strong>）停下來，
+    否則就是在一條還在通電的線路底下重新接線 —— 硬體會保護性地退回只剩 USB2，DP 根本起不來。
+  </p>
+  <p>
+    <strong>這就是冷插會動、熱插不會動的原因。</strong>
+    開機時就插著的話，那時 USB3 還沒起來，沒有東西要停；
+    熱插的時候 USB3 已經在跑了，才會撞到。
+  </p>
+  <p>
+    原本的程式碼發現「PIPE handler 還開著」時，只是印一個警告然後硬切
+    —— 那正是你在 dmesg 看到的：
+  </p>
+  <pre><code>WARNING: drivers/phy/apple/atc.c:2328 at atcphy_mux_set+0x138/0x230 [phy_apple_atc]</code></pre>
+  <p>
+    <strong>patch 做的事</strong>：把那個「只抱怨不處理」換成真的去處理 ——
+    切換前先把 PIPE handler 停到一個空的 dummy PHY 上，讓線路安靜下來，再切模式。
+    USB3 會暫時斷掉（等 dwc3 重新設定回來），USB2 不受影響。
+  </p>
+  <p class="muted">
+    驗證方式：<code>strings phy-apple-atc.ko | grep 'park PIPE handler'</code>。
+    有這個字串才代表模組是打過 patch 的 —— 這行已經在 <a href="handbook.html#howto">實作 §2.2</a> 的迴圈裡。
+  </p>
+</div>
+
+<h2 id="pageflip"><span class="n">§4</span>目前卡住的那一步</h2>
+
+<p>套完 #622 之後，熱插拔的失敗鏈條變成這樣：</p>
+
+<ol>
+  <li>拔線那一刻，DCP 吞掉一張 page flip，<strong>永遠不回報完成</strong></li>
+  <li>aquamarine（Hyprland 的 DRM 後端）那張 flip 就一直掛在「等待中」</li>
+  <li>之後<strong>每一次</strong> commit 都被它自己的保護擋掉 ——
+    <code>hyprland.log</code> 裡 <code>Cannot commit when a page-flip is awaiting</code> 出現了 <strong>14 次</strong></li>
+  <li>連手動用 <code>wlr-randr</code> 強制 modeset 都救不回來：
+    kernel 那邊確實跑完了（<code>set_digital_out_mode finished:8162</code>），
+    但畫面 commit 進不去</li>
+</ol>
+
+<p>
+  關鍵是 <strong>Hyprland 並不是「沒反應」</strong>。它的 log 顯示它有偵測到、有列出 16 個模式、也有嘗試 modeset：
+</p>
+<pre><code>drm: Connector DP-1 connected
+drm: Modesetting DP-1 with 1920x1080@60.00Hz
+ERR: drm: Cannot commit when a page-flip is awaiting</code></pre>
+
+<table>
+<thead><tr><th>層</th><th>可以說是它的問題的地方</th></tr></thead>
+<tbody>
+<tr><td><strong>kernel / driver</strong></td>
+  <td>DCP 收下 page flip 卻從不送完成事件。#622 讓「等待」不再卡 10 秒，
+    但遺失的 flip 在合成器那邊的帳沒有被清掉</td></tr>
+<tr><td><strong>Hyprland / aquamarine</strong></td>
+  <td>一旦有 flip 卡住，就再也不接受任何 commit，<strong>沒有逾時、沒有復原路徑</strong>。
+    硬體丟事件是常態，合成器不該因此永久鎖死一個輸出</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  兩邊都有道理，所以先別急著替誰定罪 —— 這正是值得寫進 issue 讓真正懂的人判斷的東西。
+</p>
+
+<footer>
+  M1 Pro 外接螢幕專案 ｜ 這份文件只寫給自己看，所以直接、不客套。<br>
+  <span id="pagelinks"></span>
+</footer>
+
+</main>
+</div>
+</div>
+<script src="doc.js"></script>
+</body>
+</html>

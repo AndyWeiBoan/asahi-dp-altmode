@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>架構</title>
+<link rel="stylesheet" href="doc.css">
+</head>
+<body>
+<button class="themebtn" id="tt" type="button">深色</button>
+<div class="wrap">
+
+<header>
+  <h1>架構</h1>
+  <p class="lede">一條 USB-C 線要變成畫面，中間有六個角色、五組核心框架介面。
+  這一頁只講<strong>靜態結構</strong>：誰是誰、誰被接到誰、driver 之間用什麼講話。
+  事件發生時實際跑什麼，在<a href="flow.html">流程</a>。</p>
+</header>
+
+<div class="layout">
+<nav class="toc">
+<details open>
+<summary>目錄 ▾</summary>
+<div id="nav"></div>
+<h4>本頁章節</h4>
+<ul id="toclist">
+  <li><a href="#roles">§1　這條路上有哪些角色</a></li>
+  <li><a href="#dt">§2　device tree 把它們接起來</a></li>
+  <li><a href="#map">§3　driver 地圖</a></li>
+  <li><a href="#glue">§4　它們之間怎麼交互</a></li>
+  <li><a href="#why">§5　為什麼要這麼多層</a></li>
+</ul>
+</details>
+</nav>
+<main>
+
+<div class="callout">
+  <strong>這一頁的每個函式名、檔名、行號都是從本機
+  <code>~/linux-fairydust</code> 查出來的</strong>，不是從文件推測的。
+  行號對應的是 fairydust 分支目前這一份 checkout，上游一改就會偏，但函式名和關係不會。
+</div>
+
+<h2 id="roles"><span class="n">§1</span>這條路上有哪些角色</h2>
+
+<p>
+  先建立一件事：<strong>「CPU」不是一顆</strong>。M1 Pro 這顆 SoC 裡，跑 Linux 的那組核心叫
+  <strong>AP</strong>（Application Processor），旁邊還有十幾顆各自跑 Apple 韌體的協處理器。
+  顯示這條路上，AP 其實<strong>什麼都不直接做</strong> —— 它在指揮別人。
+</p>
+
+<table>
+<thead><tr><th>角色</th><th>它是什麼</th><th>誰在控制它</th><th>跑誰的程式</th></tr></thead>
+<tbody>
+<tr><td><strong>AP</strong></td><td>跑 Linux 的主核心</td><td>你</td><td>Linux kernel</td></tr>
+<tr><td><strong>CD321x</strong><br><span class="muted">i2c <code>0-003f</code></span></td>
+    <td>USB-C / USB-PD 控制器。協商供電與模式、偵測插拔與方向</td>
+    <td>自己（有自己的韌體），用 IRQ 通知 AP</td><td>Apple 韌體</td></tr>
+<tr><td><strong>ATC PHY</strong><br><span class="muted"><code>atcphy1</code></span></td>
+    <td>Type-C 的實體層。同一組高速 lane 要當 USB3 還是 DP，由它切</td>
+    <td>AP 直接讀寫暫存器</td><td>Linux driver</td></tr>
+<tr><td><strong>DP crossbar</strong><br><span class="muted"><code>atcphy1_xbar</code></span></td>
+    <td>顯示端的交換器：哪個 DCP 的輸出接到哪個 PHY</td>
+    <td>AP 直接讀寫</td><td>Linux driver</td></tr>
+<tr><td><strong>DPTX PHY</strong></td>
+    <td>DisplayPort 發送端：lane 數、link rate 在這裡設</td>
+    <td>AP 直接讀寫，但<strong>是 DCP 叫它設的</strong></td><td>Linux driver</td></tr>
+<tr><td><strong>DCP</strong><br><span class="muted"><code>dcpext1</code></span></td>
+    <td>顯示協處理器。真正在操作顯示管線的是它</td>
+    <td>自己。AP 只能<strong>隔著 mailbox 送訊息</strong></td><td>Apple 韌體</td></tr>
+<tr><td><strong>A13</strong></td>
+    <td>在 <strong>Studio Display 裡面</strong>的一整顆 SoC，管面板、hub、攝影機</td>
+    <td>自己，透過 DP AUX 通道對話</td><td>Apple 韌體</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+  <strong>兩件事值得先記住，因為它們解釋了後面所有的彆扭。</strong>
+  <ul style="margin-bottom:0">
+    <li><strong>DCP 不是你寫的程式。</strong>它跑 Apple 的閉源韌體，AP 對它只能送訊息、等回覆。
+      它「吞掉一張 page flip 卻不回報」這種事，你無法從內部修 —— 只能在 AP 這側防守。</li>
+    <li><strong>DPTX PHY 是 AP 在寫，但不是 AP 在決定。</strong>
+      DCP 透過訊息告訴 AP「lane 數改成 4、link rate 改成 HBR3」，AP 照做去寫暫存器。
+      這是一個<strong>反向的控制流</strong>：協處理器指揮作業系統，也就是名詞表裡的「AP call」。</li>
+  </ul>
+</div>
+
+<h2 id="dt"><span class="n">§2</span>device tree 把它們接起來</h2>
+
+<p>
+  上面那些 driver <strong>彼此完全不知道對方存在</strong>。
+  把它們綁在一起的是 device tree —— ARM 的硬體不會自我介紹，所以必須有人寫下「誰接誰」。
+  這台機器的接線在 <code>arch/arm64/boot/dts/apple/t600x-j314-j316.dtsi</code>：
+</p>
+
+<pre><code>// 第 12 行：這一整條路要不要存在，由這個開關決定
+#define ENABLE_DCPEXT_TYPEC
+
+typec1: connector {                          // 第 188 行 —— 左前那個 USB-C 孔
+        displayport = &lt;&amp;dcpext1&gt;;           // 第 196 行 —— 這個孔的 DP 輸出來自 dcpext1
+        ports {
+                port@1 {
+                        typec1_connector_ss: endpoint {
+                                remote-endpoint = &lt;&amp;atcphy1_typec_lanes&gt;;   // 第 211 行
+                        };                   //   高速 lane 接到 atcphy1
+                };
+        };
+};
+
+&amp;dcpext1 {                                   // 第 278 行
+        phys = &lt;&amp;atcphy1 PHY_TYPE_DP&gt;;       // 第 284 行 —— DCP 要用的 PHY 是 atcphy1 的 DP 模式
+        mux-controls = &lt;&amp;atcphy1_xbar 0&gt;;    // 第 286 行 —— 它要佔用 crossbar 的第 0 路
+        mux-control-names = "dp-xbar";       // 第 287 行 —— driver 用這個名字去拿
+};</code></pre>
+
+<div class="callout stop">
+  <strong>這就是「為什麼只有一個孔會亮」的答案，也是 <a href="https://github.com/AsahiLinux/linux/pull/476">#476</a> 想做的事。</strong>
+  只有 <code>typec1</code> 這個 connector 寫了 <code>displayport = &lt;&amp;dcpext1&gt;</code>。
+  其他三個孔沒有這一行，所以對 Linux 而言它們根本沒有顯示能力 ——
+  插上去不是「壞掉」，是<strong>這條路在資料上就不存在</strong>。
+  正式 kernel 連 <code>#define ENABLE_DCPEXT_TYPEC</code> 都沒開，所以連 <code>DP-1</code> 都不會出現。
+</div>
+
+<h2 id="map"><span class="n">§3</span>driver 地圖</h2>
+
+<p>哪個檔案管哪一塊硬體，以及它<strong>對外掛出什麼</strong> —— 最後一欄是重點，
+那決定了別人能怎麼呼叫它。</p>
+
+<table>
+<thead><tr><th>檔案</th><th>管哪塊硬體</th><th>它對外註冊／掛出什麼</th></tr></thead>
+<tbody>
+<tr><td><code>drivers/usb/typec/tipd/core.c</code></td>
+    <td>CD321x（USB-PD）</td>
+    <td>Type-C port；並持有別人的 handle：<code>mux</code>、<code>role_sw</code>、<code>connector_fwnode</code>。
+    <strong>這是整條路的發動機</strong> —— 插拔事件從這裡開始</td></tr>
+<tr><td><code>drivers/phy/apple/atc.c</code></td>
+    <td>ATC PHY</td>
+    <td><code>typec_mux_register()</code>（第 2374 行）、
+        <code>typec_switch_register()</code>（第 2256 行）、
+        PHY provider（第 2149 行）。三組 <code>phy_ops</code>：
+        USB2（1984）／USB3（2032）／DP（2109）</td></tr>
+<tr><td><code>drivers/mux/apple-display-crossbar.c</code></td>
+    <td>DP crossbar</td>
+    <td><code>devm_mux_chip_register()</code>（第 401 行）—— 掛成一個標準 mux 控制器</td></tr>
+<tr><td><code>drivers/phy/apple/dptx.c</code></td>
+    <td>DPTX PHY</td>
+    <td><code>phy_ops</code>：<code>set_mode</code>（526）、<code>validate</code>（544）、
+        <code>configure</code>（570）。實作是 <code>dptx_phy_activate()</code>（125）、
+        <code>set_link_rate()</code>（324）、<code>set_active_lane_count()</code>（81）</td></tr>
+<tr><td><code>drivers/gpu/drm/apple/apple_drv.c</code></td>
+    <td>DRM 這一側的門面</td>
+    <td>DRM connector helper，其中
+        <code>.oob_hotplug_event = apple_connector_oob_hotplug</code>（第 250 行）
+        —— <strong>Type-C 世界進入顯示世界的唯一入口</strong></td></tr>
+<tr><td><code>drivers/gpu/drm/apple/dcp.c</code></td>
+    <td>DCP 本體</td>
+    <td><code>devm_apple_rtkit_init(dev, dcp, "mbox", …)</code>（第 1076 行）建立 mailbox 連線；
+        對外開 <code>dcp_dptx_connect_oob()</code> / <code>disconnect_oob()</code>（433／439）</td></tr>
+<tr><td><code>drivers/gpu/drm/apple/dptxep.c</code><br>
+        <code>iomfb.c</code>、<code>systemep.c</code>、<code>av.c</code>、<code>audio.c</code></td>
+    <td>DCP 上的各個服務</td>
+    <td>不是硬體 driver，是<strong>跑在 mailbox 之上的協定端點</strong>（endpoint）。
+        DCP 韌體裡有好幾個服務，一個檔案對一個</td></tr>
+<tr><td><code>drivers/gpu/drm/apple/afk.c</code></td>
+    <td>—</td>
+    <td>上面那些 endpoint 共用的傳輸層（環形緩衝、訊息切分）</td></tr>
+</tbody>
+</table>
+
+<h2 id="glue"><span class="n">§4</span>它們之間怎麼交互</h2>
+
+<p>
+  <strong>沒有任何一個 driver 直接呼叫另一個 driver 的函式。</strong>
+  全部走核心框架：一邊 <code>register</code>，另一邊靠 device tree 的接線去 <code>get</code>，
+  然後呼叫框架的通用 API，框架再轉給對方的 callback。
+  一共用到五組，把它們認完，這條路上就沒有黑箱了。
+</p>
+
+<h3>① Type-C mux framework —— 切實體 lane</h3>
+<pre><code>tipd/core.c        typec_mux_set(cd321x-&gt;mux, &amp;cd321x-&gt;state)   // 559, 599, 614, 628, 635
+   ↓（框架查出 DT 接線指向 atcphy1）
+phy/apple/atc.c    atcphy_mux_set()                              // 由 typec_mux_register(2374) 掛上</code></pre>
+<p class="muted">
+  CD321x 的 driver 從頭到尾沒有 <code>#include</code> 過 atc.c 的任何東西。
+  它只知道「我有一個 mux」，那個 mux 是誰，是 device tree 第 211 行那條
+  <code>remote-endpoint</code> 決定的。
+</p>
+
+<h3>② DRM out-of-band hotplug —— 從 Type-C 跨進顯示</h3>
+<pre><code>tipd/core.c        drm_connector_oob_hotplug_event(cd321x-&gt;connector_fwnode, status)  // 694, 754
+   ↓（框架用 fwnode 找到對應的 drm_connector）
+apple_drv.c        apple_connector_oob_hotplug()                 // 87，由 .oob_hotplug_event(250) 掛上
+   ↓
+dcp.c              dcp_dptx_connect_oob() / dcp_dptx_disconnect_oob()   // 433 / 439</code></pre>
+<p class="muted">
+  「out-of-band」的意思是：這個 hotplug 訊號<strong>不是從顯示線本身收到的</strong>，
+  是 USB-PD 那一側告訴顯示子系統的。一般 DP 螢幕靠 HPD pin，這裡靠 CD321x 轉述 ——
+  所以 Type-C 的 driver 才會需要認識一個 DRM connector。
+</p>
+
+<h3>③ mux framework —— 佔用 crossbar</h3>
+<pre><code>dcp.c              devm_mux_control_get(dev, "dp-xbar")          // 1262（名字來自 DT 第 287 行）
+dcp.c              mux_control_select(dcp-&gt;xbar, mux_index)      // 1267
+   ↓
+mux/apple-display-crossbar.c                                     // devm_mux_chip_register(401)</code></pre>
+
+<h3>④ PHY framework —— 但方向是反的</h3>
+<pre><code>dptxep.c           phy_set_mode_ext(dptx-&gt;atcphy, PHY_MODE_DP, dcp-&gt;index)  // 484
+dptxep.c           phy_configure(dptx-&gt;atcphy, &amp;dptx-&gt;phy_ops)             // 322, 429
+   ↓
+phy/apple/dptx.c   dptx_phy_set_mode(526) / dptx_phy_configure(570)
+                   → dptx_phy_activate(125) / set_link_rate(324) / set_active_lane_count(81)</code></pre>
+<div class="callout">
+  <strong>注意這一組是從哪裡發起的。</strong><code>dptxep.c</code> 是
+  <strong>DCP 的訊息處理函式</strong> —— 也就是說：DCP 韌體送一則訊息過來說「把 lane 設成這樣」，
+  AP 收到之後才去呼叫 PHY framework。
+  <strong>控制流是從協處理器往作業系統走的</strong>，跟你平常寫 driver 的方向相反。
+  這就是「AP call」這個名詞的實際長相。
+</div>
+
+<h3>⑤ RTKit / AFK / EPIC —— 跟 DCP 講話的三層</h3>
+<table>
+<thead><tr><th>層</th><th>負責</th><th>檔案</th></tr></thead>
+<tbody>
+<tr><td><strong>RTKit</strong></td><td>mailbox 上的最底層協定：開機、喚醒、共享記憶體、送／收一則訊息</td>
+    <td>核心共用；DCP 這邊在 <code>dcp.c:1076</code> 初始化</td></tr>
+<tr><td><strong>AFK</strong></td><td>在 RTKit 之上鋪環形緩衝，讓多個服務共用同一條 mailbox</td>
+    <td><code>afk.c</code></td></tr>
+<tr><td><strong>EPIC / endpoint</strong></td><td>一個服務一個端點，各自有自己的訊息格式</td>
+    <td><code>dptxep.c</code>（DP 連線）、<code>iomfb.c</code>（送畫面）、
+        <code>systemep.c</code>、<code>av.c</code>、<code>audio.c</code></td></tr>
+</tbody>
+</table>
+<p class="muted">
+  所以 <code>dmesg</code> 裡那句 <code>new service DCPDPService on channel 17/19</code> 是這一層在講話：
+  DCP 韌體宣告它開了一個服務，AP 這邊把 <code>dptxep.c</code> 掛上去。
+  服務沒開起來，<code>dcp_dptx_connect()</code> 第一件事就是拒絕
+  （<code>dptx service for port %d not enabled</code>，<code>dcp.c:372</code>）。
+</p>
+
+<h2 id="why"><span class="n">§5</span>為什麼要這麼多層</h2>
+
+<p>第一次看會覺得繞，但每一層都在解決一個具體問題：</p>
+
+<table>
+<thead><tr><th>層</th><th>它存在的理由</th></tr></thead>
+<tbody>
+<tr><td>Type-C framework</td>
+    <td>同一條線要輪流當 USB3、DP、Thunderbolt。<strong>誰決定</strong>（PD 控制器）和
+        <strong>誰執行</strong>（PHY）是兩顆不同的硬體，必須解耦</td></tr>
+<tr><td>PHY framework</td>
+    <td>同一顆 ATC PHY 有三種身分（USB2／USB3／DP），三組 <code>phy_ops</code> 各自獨立，
+        呼叫者不必知道自己拿到的是哪一種</td></tr>
+<tr><td>mux framework</td>
+    <td>crossbar 是<strong>共用資源</strong> —— 多個 DCP 搶同幾條輸出。
+        用 <code>select</code>／<code>deselect</code> 才有互斥</td></tr>
+<tr><td>DRM oob hotplug</td>
+    <td>顯示子系統原本假設 hotplug 從顯示線來。Type-C 打破了這個假設，
+        所以要開一個正式的「從旁邊通知」入口</td></tr>
+<tr><td>RTKit / AFK / EPIC</td>
+    <td>DCP 是獨立的電腦。跟它溝通本質上是<strong>行程間通訊</strong>，
+        不是讀寫暫存器 —— 所以需要傳輸層、多工、協定三層</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+  <strong>把這五組認熟，再回頭看 <a href="flow.html">流程</a> 那一頁的呼叫鏈，就不再是一串陌生的函式名。</strong>
+  每一個箭頭都是上面五組的其中一組。
+</div>
+
+<footer>
+  M1 Pro 外接螢幕專案 ｜ 這份文件只寫給自己看，所以直接、不客套。<br>
+  <span id="pagelinks"></span>
+</footer>
+
+</main>
+</div>
+</div>
+<script src="doc.js"></script>
+</body>
+</html>

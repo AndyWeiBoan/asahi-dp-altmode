@@ -82,7 +82,7 @@
   <p class="lead">拔線時 DCP 吞掉一張 page flip，而且從不回報完成。合成器之後拒絕所有 commit，輸出等於被永久鎖死。</p>
   <pre><code>ERR: drm: Cannot commit when a page-flip is awaiting</code></pre>
   <p class="sub">卡點在<strong>合成器</strong>，不在 kernel。
-    失敗鏈條與責任歸屬 → <a href="handbook.html#pageflip">動手 §3</a></p>
+    失敗鏈條與責任歸屬 → <a href="flow.html#pageflip">流程 §4</a></p>
 </section>
 
 <section class="slab act" id="next">
@@ -111,7 +111,7 @@
   最後更新 2026-09-26　·　kernel <code>7.1.13-fairydust+</code>（fairydust 分支 + patch 0001 +
   <a href="https://github.com/AsahiLinux/linux/pull/622">#622</a>），官方 <code>7.1.13-402.asahi</code> 留在 GRUB 當退路<br>
   改 C → 約 40 秒增量編譯 → 裝模組 → 重開機測　·　版本、孔位、驗證指令見
-  <a href="handbook.html#quick">動手 §1 速查</a>
+  <a href="handbook.html#quick">實作 §1 速查</a>
 </p>
 
 <footer>

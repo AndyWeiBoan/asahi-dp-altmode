@@ -15,14 +15,20 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 
 ## 內容
 
-一條軸：**你現在需要什麼**。每一頁只裝一種時間尺度的東西。
+**這是一份學習手冊**，主幹是系統本身 —— 先搞懂硬體怎麼運作、driver 之間怎麼交互，
+操作和專案狀態是附屬的。
 
 | 檔案 | 裝什麼 | 什麼時候開 |
 |---|---|---|
-| `html/index.html` | **入口** —— 不是文件的一章：三顆狀態燈、卡在哪、下一件事、去哪 | 每次打開 |
-| `html/handbook.html` | **動手** —— 速查、build／退回／更新的指令、卡住時的診斷順序、機制（插拔／開機鏈／#622） | 手放在鍵盤上時 |
-| `html/plan.html` | **方向** —— 大方向、兩個斷點、六階段階梯、遠期 m1n1 雙機 trace、規矩 | 一個月一次 |
+| `html/index.html` | **入口** —— 三顆狀態燈、卡在哪、下一件事 | 每次打開 |
+| `html/architecture.html` | ★ **架構** —— 這條路上有哪些角色、device tree 怎麼接、driver 地圖、它們之間用哪五組框架交互 | 要搞懂系統時 |
+| `html/flow.html` | ★ **流程** —— 開機／插線拔線／送一張畫面的完整呼叫鏈，冷插與熱插為什麼不同 | 要搞懂系統時 |
+| `html/handbook.html` | **實作** —— 速查、build／退回／更新、卡住了怎麼查 | 手放在鍵盤上時 |
+| `html/plan.html` | **方向** —— 目標、六階段階梯、遠期 m1n1 雙機 trace、規矩 | 一個月一次 |
 | `html/appendix.html` | **附錄** —— 名詞表、連結索引、材料清單、日誌 | 查東西時 |
+
+架構與流程兩頁裡的每個函式名、檔名、行號都是從本機 `~/linux-fairydust` 查證出來的。
+行號會隨上游漂移，函式名與呼叫關係不會。
 
 七張圖**各自嵌在解釋它的那一節裡**，不另成一條清單。`html/index.html#figs` 是總覽：
 
@@ -33,14 +39,14 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 | `html/02-ladder.html` | 圖 2 · 學習階梯 —— 六個階段與近／中／遠程目標 | 方向 §3 |
 | `html/04-phases.html` | 圖 4 · 兩個階段 —— Python 找答案，C 寫進 kernel | 方向 §4 |
 | `html/03-m1n1.html` | 圖 3 · 角色分配 —— 哪台是 target、哪台是 host | 方向 §5 |
-| `html/07-hotplug.html` | 圖 7 · 插拔事件 —— HPD、IRQ、kernel 狀態與 mux | 動手 §4 |
-| `html/05-boot.html` | 圖 5 · 開機鏈 —— iBoot → m1n1 → U-Boot → GRUB → Linux | 動手 §5 |
+| `html/07-hotplug.html` | 圖 7 · 插拔事件 —— HPD、IRQ、kernel 狀態與 mux | 流程 §2 |
+| `html/05-boot.html` | 圖 5 · 開機鏈 —— iBoot → m1n1 → U-Boot → GRUB → Linux | 流程 §1 |
 | `spec/*.json` | 七張圖的原始碼（archify 規格），要改圖改這裡 | |
 
-四份文字頁共用 `html/doc.css` 和 `html/doc.js`；七張圖是 archify 產生的自足檔案，不吃那兩個。
+六份文字頁共用 `html/doc.css` 和 `html/doc.js`；七張圖是 archify 產生的自足檔案，不吃那兩個。
 
 導覽列與頁尾的連結由 `html/doc.js` 最上面的 `PAGES` / `FIGS` 兩個陣列產生 ——
-**加一頁、加一張圖或改一句描述改那裡就好** —— 側邊導覽、頁尾、入口頁的三張卡片和圖索引都從那裡產生。
+**加一頁、加一張圖或改一句描述改那裡就好** —— 側邊導覽、頁尾、入口頁的卡片和圖索引都從那裡產生。
 
 圖支援深／淺色、縮放、搜尋與引導視角，建議全螢幕開啟。
 
@@ -70,7 +76,7 @@ Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https
 > 並重刷 m1n1 —— fairydust kernel 會帶著官方 DTB 開機，外接螢幕安靜地不再亮。
 > 修法：`sudo ln -sfn /boot/dtbs/<fairydust版本> /boot/dtb && sudo update-m1n1`。
 
-照著做的部分在**動手 §2.1**；為什麼要做這一步見**方向 §3**。
+照著做的部分在**實作 §2.1**；為什麼要做這一步見**方向 §3**。
 
 ## 實測紀錄
 
@@ -80,7 +86,7 @@ Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https
 剩下的卡點在合成器：`Cannot commit when a page-flip is awaiting`。
 
 完整過程與判斷記在**附錄 §4 日誌**；#622 兩塊改動的白話解釋、診斷工具對照表、那幾個坑
-整理在**動手**頁。
+整理在**流程 §3**。
 
 ## 重新產生圖
 
