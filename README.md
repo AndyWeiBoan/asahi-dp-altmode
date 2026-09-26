@@ -20,11 +20,11 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 | 檔案 | 內容 | 什麼時候看 |
 |---|---|---|
 | `html/index.html` | **入口** —— 現在的狀態、下一步、導航 | 每次打開 |
-| `html/handbook.html` | **手冊** —— 操作、診斷、這台機器的硬事實、踩過的坑、開機鏈、名詞表、連結索引 | 卡住時查 |
+| `html/handbook.html` | **手冊** —— 速查、照著做的步驟、卡住時的診斷順序、機制（插拔／開機鏈／#622）、名詞表、連結索引 | 卡住時查 |
 | `html/journal.html` | **日誌** —— 每次動手記一筆 | 寫的時候，偶爾回頭找線索 |
 | `html/plan.html` | **計畫** —— 大方向、兩個斷點、六階段學習階梯、m1n1 雙機 trace、材料清單、規矩 | 一個月一次 |
 
-六張圖：
+七張圖：
 
 | 檔案 | 內容 |
 |---|---|
@@ -38,6 +38,9 @@ MacBook Pro 14" M1 Pro（t600x）+ Apple Studio Display，在 Fedora Asahi Remix
 | `spec/*.json` | 七張圖的原始碼（archify 規格），要改圖改這裡 |
 
 四份文字頁共用 `html/doc.css` 和 `html/doc.js`；七張圖是 archify 產生的自足檔案，不吃那兩個。
+
+導覽列與頁尾的連結由 `html/doc.js` 最上面的 `PAGES` / `FIGS` 兩個陣列產生 ——
+**加一張圖或改一句描述改那裡就好**，四份頁面會一起變。
 
 圖支援深／淺色、縮放、搜尋與引導視角，建議全螢幕開啟。
 
@@ -67,7 +70,7 @@ Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https
 > 並重刷 m1n1 —— fairydust kernel 會帶著官方 DTB 開機，外接螢幕安靜地不再亮。
 > 修法：`sudo ln -sfn /boot/dtbs/<fairydust版本> /boot/dtb && sudo update-m1n1`。
 
-細節見**手冊 §1 操作**；為什麼要做這一步見**計畫 §3**。
+細節見**手冊 §2 照著做**；為什麼要做這一步見**計畫 §3**。
 
 ## 實測紀錄
 
@@ -76,12 +79,12 @@ Fedora Asahi Remix 可以直接用 [bharambetejas/asahi-fairydust-display](https
 （`flip_done timed out` 從 2 次變 0 次、`atcphy_mux_set` WARNING 消失）。
 剩下的卡點在合成器：`Cannot commit when a page-flip is awaiting`。
 
-完整過程與判斷記在 **日誌**；#622 兩塊改動的白話解釋、診斷工具對照表、踩到的四個坑
+完整過程與判斷記在 **日誌**；#622 兩塊改動的白話解釋、診斷工具對照表、那幾個坑
 整理在 **手冊**。
 
 ## 重新產生圖
 
-六張圖由 [archify](https://github.com/tt-a1i/archify)（MIT）從 `spec/*.json` 產生。
+七張圖由 [archify](https://github.com/tt-a1i/archify)（MIT）從 `spec/*.json` 產生。
 
 ```bash
 npx skills add tt-a1i/archify -g          # 安裝到 ~/.claude/skills/archify
@@ -91,9 +94,9 @@ node ~/.claude/skills/archify/bin/archify.mjs \
 ```
 
 對應關係：`stack`→`01-stack`、`ladder`→`02-ladder`、`m1n1`→`03-m1n1`、
-`phases`→`04-phases`、`boot`→`05-boot`、`sides`→`06-sides`；
+`phases`→`04-phases`、`boot`→`05-boot`、`sides`→`06-sides`、`hotplug`→`07-hotplug`；
 `.architecture.json` 用 `architecture`，`.workflow.json` 用 `workflow`。
-六張圖目前都通過 `validate --quality showcase` 的 9/9 檢查。
+七張圖目前都通過 `validate --quality showcase` 的 9/9 檢查。
 
 ## 說明
 

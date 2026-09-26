@@ -19,23 +19,7 @@
 <nav class="toc">
 <details open>
 <summary>目錄 ▾</summary>
-<h4>頁面</h4>
-<ul class="pg">
-  <li><a href="index.html" class="on">入口<small>現況與下一步</small></a></li>
-  <li><a href="handbook.html">手冊<small>操作・診斷・坑・名詞</small></a></li>
-  <li><a href="journal.html">日誌<small>每次動手記一筆</small></a></li>
-  <li><a href="plan.html">計畫<small>目標・階梯・遠期</small></a></li>
-</ul>
-<h4>圖</h4>
-<ul class="pg">
-  <li><a href="01-stack.html">圖 1 · 技術堆疊<small>兩個斷點卡在哪一層</small></a></li>
-  <li><a href="02-ladder.html">圖 2 · 學習階梯<small>六個階段與遠中近目標</small></a></li>
-  <li><a href="03-m1n1.html">圖 3 · 角色分配<small>哪台 target、哪台 host</small></a></li>
-  <li><a href="04-phases.html">圖 4 · 兩個階段<small>Python 找答案，C 寫進 kernel</small></a></li>
-  <li><a href="05-boot.html">圖 5 · 開機鏈<small>iBoot → m1n1 → U-Boot → GRUB</small></a></li>
-  <li><a href="06-sides.html">圖 6 · Mac vs 螢幕<small>哪些東西在哪一邊</small></a></li>
-  <li><a href="07-hotplug.html">圖 7 · 插拔事件<small>HPD、IRQ、kernel 與 mux</small></a></li>
-</ul>
+<div id="nav"></div>
 <h4>本頁章節</h4>
 <ul id="toclist">
   <li><a href="#i1">§1　現在的狀態</a></li>
@@ -48,7 +32,7 @@
 
 <h2 id="i1"><span class="n">§1</span>現在的狀態</h2>
 
-<p class="muted">最後更新 2026-09-24 凌晨</p>
+<p class="muted">最後更新 2026-09-26</p>
 
 <table>
 <thead><tr><th></th><th></th></tr></thead>
@@ -72,9 +56,45 @@
 <div class="callout">
   <strong>卡住的點在合成器，不在 kernel。</strong>
   拔線時 DCP 吞掉一張 page flip 且從不回報完成，aquamarine 之後就拒絕所有 commit
-  （<code>Cannot commit when a page-flip is awaiting</code>）。
-  完整的推理在 <a href="handbook.html#h3">手冊 §3</a>。
+  （<code>Cannot commit when a page-flip is awaiting</code>）。推理如下。
 </div>
+
+<h3>卡在哪裡：一個永遠等不到完成的 page flip</h3>
+
+<p>套完 #622 之後，熱插拔的失敗鏈條變成這樣：</p>
+
+<ol>
+  <li>拔線那一刻，DCP 吞掉一張 page flip，<strong>永遠不回報完成</strong></li>
+  <li>aquamarine（Hyprland 的 DRM 後端）那張 flip 就一直掛在「等待中」</li>
+  <li>之後<strong>每一次</strong> commit 都被它自己的保護擋掉 ——
+    <code>hyprland.log</code> 裡 <code>Cannot commit when a page-flip is awaiting</code> 出現了 <strong>14 次</strong></li>
+  <li>連手動用 <code>wlr-randr</code> 強制 modeset 都救不回來：
+    kernel 那邊確實跑完了（<code>set_digital_out_mode finished:8162</code>），
+    但畫面 commit 進不去</li>
+</ol>
+
+<p>
+  關鍵是 <strong>Hyprland 並不是「沒反應」</strong>。它的 log 顯示它有偵測到、有列出 16 個模式、也有嘗試 modeset：
+</p>
+<pre><code>drm: Connector DP-1 connected
+drm: Modesetting DP-1 with 1920x1080@60.00Hz
+ERR: drm: Cannot commit when a page-flip is awaiting</code></pre>
+
+<table>
+<thead><tr><th>層</th><th>可以說是它的問題的地方</th></tr></thead>
+<tbody>
+<tr><td><strong>kernel / driver</strong></td>
+  <td>DCP 收下 page flip 卻從不送完成事件。#622 讓「等待」不再卡 10 秒，
+    但遺失的 flip 在合成器那邊的帳沒有被清掉</td></tr>
+<tr><td><strong>Hyprland / aquamarine</strong></td>
+  <td>一旦有 flip 卡住，就再也不接受任何 commit，<strong>沒有逾時、沒有復原路徑</strong>。
+    硬體丟事件是常態，合成器不該因此永久鎖死一個輸出</td></tr>
+</tbody>
+</table>
+
+<p class="muted">
+  兩邊都有道理，所以先別急著替誰定罪 —— 這正是值得寫進 issue 讓真正懂的人判斷的東西。
+</p>
 
 <h2 id="i2"><span class="n">§2</span>下一步</h2>
 
@@ -82,9 +102,9 @@
 <ol>
   <li><strong>一起寫一份學習計畫</strong> —— 不是單方面寫完丟過來的那種</li>
   <li><strong>把兩個 patch 逐行看懂</strong>：0001（內建 HDMI resume，11 行，暖身）和 #622（兩塊，42 行）。
-    白話版已經在 <a href="handbook.html#h3">手冊 §3</a>，但要真的一行一行看過</li>
+    白話版已經在 <a href="handbook.html#p622">手冊 §6</a>，但要真的一行一行看過</li>
   <li><strong>討論熱插拔</strong>。重點不只是修好，是搞懂那些探測手段各自在看哪一層
-    —— 對照表在 <a href="handbook.html#h2">手冊 §2</a></li>
+    —— 對照表在 <a href="handbook.html#debug">手冊 §3</a></li>
   <li>然後才動 <code>iomfb.c</code>。<strong>程式自己寫</strong></li>
 </ol>
 <p class="muted" style="margin-bottom:0">
@@ -109,7 +129,7 @@
 <div class="figs">
   <a class="fig" href="handbook.html">
     <b>手冊</b>
-    <span>操作、診斷、這台機器的硬事實、踩過的坑、開機鏈、名詞表。<strong>卡住的時候來這裡查。</strong></span>
+    <span>速查、照著做的步驟、卡住時的診斷順序、機制解說、名詞表。<strong>卡住的時候來這裡查。</strong></span>
   </a>
   <a class="fig" href="journal.html">
     <b>日誌</b>
@@ -140,11 +160,7 @@
 
 <footer>
   M1 Pro 外接螢幕專案 ｜ 這份文件只寫給自己看，所以直接、不客套。<br>
-  <a href="index.html">入口</a> ·
-  <a href="handbook.html">手冊</a> ·
-  <a href="journal.html">日誌</a> ·
-  <a href="plan.html">計畫</a> ·
-  <a href="https://github.com/AndyWeiBoan/asahi-dp-altmode">GitHub</a>
+  <span id="pagelinks"></span>
 </footer>
 
 </main>

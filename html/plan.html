@@ -19,22 +19,7 @@
 <nav class="toc">
 <details open>
 <summary>目錄 ▾</summary>
-<h4>頁面</h4>
-<ul class="pg">
-  <li><a href="index.html">入口<small>現況與下一步</small></a></li>
-  <li><a href="handbook.html">手冊<small>操作・診斷・坑・名詞</small></a></li>
-  <li><a href="journal.html">日誌<small>每次動手記一筆</small></a></li>
-  <li><a href="plan.html" class="on">計畫<small>目標・階梯・遠期</small></a></li>
-</ul>
-<h4>圖</h4>
-<ul class="pg">
-  <li><a href="01-stack.html">圖 1 · 技術堆疊<small>兩個斷點卡在哪一層</small></a></li>
-  <li><a href="02-ladder.html">圖 2 · 學習階梯<small>六個階段與遠中近目標</small></a></li>
-  <li><a href="03-m1n1.html">圖 3 · 角色分配<small>哪台 target、哪台 host</small></a></li>
-  <li><a href="04-phases.html">圖 4 · 兩個階段<small>Python 找答案，C 寫進 kernel</small></a></li>
-  <li><a href="05-boot.html">圖 5 · 開機鏈<small>iBoot → m1n1 → U-Boot → GRUB</small></a></li>
-  <li><a href="06-sides.html">圖 6 · Mac vs 螢幕<small>哪些東西在哪一邊</small></a></li>
-</ul>
+<div id="nav"></div>
 <h4>本頁章節</h4>
 <ul id="toclist">
   <li><a href="#p1">§1　大方向</a></li>
@@ -241,8 +226,8 @@
     <li>開啟 DP alt mode 相關選項，建議編成 module（方便用 <code>dmesg</code> 確認有沒有載到）</li>
     <li>build kernel <strong>加 DTB</strong> —— Asahi 靠 device tree，別只裝 vmlinuz</li>
     <li>確認 GRUB 選單會顯示（Asahi 預設會跳過），否則你沒地方選回舊 kernel</li>
-  
-  <p class="muted">操作細節（腳本做了什麼、它會動到哪些檔、更新後要檢查什麼）在 <a href="handbook.html#h1">手冊 §1</a>。</p>
+  </ol>
+  <p class="muted">操作細節（腳本做了什麼、它會動到哪些檔、更新後要檢查什麼）在 <a href="handbook.html#howto">手冊 §2</a>。</p>
 </div>
 <div class="stage">
   <h3>階段 0.5 · m1n1 proxy 的 Python REPL</h3>
@@ -570,6 +555,10 @@ python3 proxyclient/tools/run_guest.py \
   Generative AI Policy。第二份才是真正規範你日常工作的，動手前務必自己讀原文。
 </p>
 
+<p class="muted">
+  本頁的政策判讀是依據公開文件的推論，<strong>只有 Asahi 自己能認定</strong> —— 動手前先去問一次。
+</p>
+
 <h3>工作守則</h3>
 <p style="font-size:18px">
   觀察硬體行為　→　自己理解　→　自己寫　→　送 PR
@@ -671,11 +660,7 @@ python3 proxyclient/tools/run_guest.py \
 
 <footer>
   M1 Pro 外接螢幕專案 ｜ 這份文件只寫給自己看，所以直接、不客套。<br>
-  <a href="index.html">入口</a> ·
-  <a href="handbook.html">手冊</a> ·
-  <a href="journal.html">日誌</a> ·
-  <a href="plan.html">計畫</a> ·
-  <a href="https://github.com/AndyWeiBoan/asahi-dp-altmode">GitHub</a>
+  <span id="pagelinks"></span>
 </footer>
 
 </main>
